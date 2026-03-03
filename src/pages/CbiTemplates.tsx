@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Title,
   Button,
@@ -30,39 +30,21 @@ import {
   IconX,
   IconEye,
 } from "@tabler/icons-react";
-import api from "../lib/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
-
-/* ─── Interfaces ─── */
-interface Competency {
-  competency_id: number;
-  competency: string;
-  competency_type_id: number;
-  competency_cluster_id: number;
-}
-
-interface CompetencyQuestion {
-  competency_question_id: number;
-  competency_id: number;
-  level: number;
-  question: string;
-  status: string;
-  competency?: { competency: string };
-}
-
-interface CompetencySelection {
-  competency_id: number;
-  level: number;
-}
-
-interface CbiTemplate {
-  cbi_template_id: number;
-  template_name: string;
-  description: string;
-  competencies: CompetencySelection[];
-  questions: number[];
-  status: string;
-}
+import type {
+  CbiTemplate,
+  CompetencySelection,
+} from "../services/cbi/interfaces";
+import {
+  useCbiTemplates,
+  useCreateTemplate,
+  useUpdateTemplate,
+  useDeleteTemplate,
+} from "../services/cbi/hooks";
+import {
+  useCompetencies,
+  useCompetencyQuestions,
+} from "../services/competencies/hooks";
 
 const levelColors: Record<number, string> = {
   1: "green",
@@ -74,10 +56,12 @@ const levelColors: Record<number, string> = {
 
 /* ─── Main Page ─── */
 export default function CbiTemplates() {
-  const [templates, setTemplates] = useState<CbiTemplate[]>([]);
-  const [competencies, setCompetencies] = useState<Competency[]>([]);
-  const [allQuestions, setAllQuestions] = useState<CompetencyQuestion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: templates = [], isLoading: loading } = useCbiTemplates();
+  const { data: competencies = [] } = useCompetencies();
+  const { data: allQuestions = [] } = useCompetencyQuestions();
+  const createMutation = useCreateTemplate();
+  const updateMutation = useUpdateTemplate();
+  const deleteMutation = useDeleteTemplate();
 
   // Modal state
   const [modalOpened, setModalOpened] = useState(false);
@@ -103,46 +87,6 @@ export default function CbiTemplates() {
       description: "",
     },
   });
-
-  /* ─── Data fetching ─── */
-  const fetchTemplates = useCallback(async () => {
-    try {
-      const res = await api.get("/cbi/templates");
-      setTemplates(res.data);
-    } catch {
-      notifications.show({
-        title: "Error",
-        message: "Failed to fetch templates",
-        color: "red",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchCompetencies = useCallback(async () => {
-    try {
-      const res = await api.get("/competencies");
-      setCompetencies(res.data);
-    } catch {
-      /* non-critical */
-    }
-  }, []);
-
-  const fetchQuestions = useCallback(async () => {
-    try {
-      const res = await api.get("/cbi/questions");
-      setAllQuestions(res.data);
-    } catch {
-      /* non-critical */
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchTemplates();
-    fetchCompetencies();
-    fetchQuestions();
-  }, [fetchTemplates, fetchCompetencies, fetchQuestions]);
 
   /* ─── Helpers ─── */
   const compName = (id: number) =>
@@ -195,14 +139,14 @@ export default function CbiTemplates() {
       };
 
       if (editingId) {
-        await api.patch(`/cbi/templates/${editingId}`, payload);
+        await updateMutation.mutateAsync({ id: editingId, data: payload });
         notifications.show({
           title: "Updated",
           message: "Template updated",
           color: "green",
         });
       } else {
-        await api.post("/cbi/templates", payload);
+        await createMutation.mutateAsync(payload);
         notifications.show({
           title: "Created",
           message: "Template created",
@@ -214,7 +158,6 @@ export default function CbiTemplates() {
       form.reset();
       setEditingId(null);
       setSelections([]);
-      fetchTemplates();
     } catch (error: any) {
       notifications.show({
         title: "Error",
@@ -226,13 +169,12 @@ export default function CbiTemplates() {
 
   const handleDelete = async (id: number) => {
     try {
-      await api.delete(`/cbi/templates/${id}`);
+      await deleteMutation.mutateAsync(id);
       notifications.show({
         title: "Deleted",
         message: "Template deleted",
         color: "green",
       });
-      fetchTemplates();
     } catch (error: any) {
       notifications.show({
         title: "Error",

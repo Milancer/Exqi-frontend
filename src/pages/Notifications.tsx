@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Title,
@@ -22,58 +21,31 @@ import {
   IconBriefcase,
   IconUserStar,
 } from "@tabler/icons-react";
-import api from "../lib/api";
-
-interface NotificationItem {
-  notification_id: number;
-  user_id: number;
-  type: string;
-  title: string;
-  message: string;
-  is_read: boolean;
-  reference_type: string | null;
-  reference_id: number | null;
-  client_id: number;
-  created_at: string;
-}
+import type { NotificationItem } from "../services/notifications/interfaces";
+import {
+  useNotifications,
+  useMarkAsRead,
+  useMarkAllAsRead,
+} from "../services/notifications/hooks";
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: notificationsList = [], isLoading: loading } =
+    useNotifications();
+  const markAsReadMutation = useMarkAsRead();
+  const markAllAsReadMutation = useMarkAllAsRead();
   const navigate = useNavigate();
-
-  const fetchNotifications = async () => {
-    try {
-      const res = await api.get("/notifications");
-      setNotifications(res.data);
-    } catch (err) {
-      console.error("Failed to fetch notifications", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
 
   const markAsRead = async (id: number) => {
     try {
-      await api.patch(`/notifications/${id}/read`);
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.notification_id === id ? { ...n, is_read: true } : n,
-        ),
-      );
+      await markAsReadMutation.mutateAsync(id);
     } catch (err) {
       console.error("Failed to mark as read", err);
     }
   };
 
-  const markAllAsRead = async () => {
+  const markAllRead = async () => {
     try {
-      await api.patch("/notifications/read-all");
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      await markAllAsReadMutation.mutateAsync();
     } catch (err) {
       console.error("Failed to mark all as read", err);
     }
@@ -115,11 +87,11 @@ export default function Notifications() {
     }
   };
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadCount = notificationsList.filter((n) => !n.is_read).length;
 
   // Group by date
   const grouped: Record<string, NotificationItem[]> = {};
-  notifications.forEach((n) => {
+  notificationsList.forEach((n) => {
     const date = new Date(n.created_at).toLocaleDateString("en-ZA", {
       day: "numeric",
       month: "long",
@@ -145,7 +117,7 @@ export default function Notifications() {
         {unreadCount > 0 && (
           <Button
             leftSection={<IconChecks size={16} />}
-            onClick={markAllAsRead}
+            onClick={markAllRead}
             variant="light"
             size="sm"
           >
@@ -158,7 +130,7 @@ export default function Notifications() {
         <Center p="xl">
           <Loader />
         </Center>
-      ) : notifications.length === 0 ? (
+      ) : notificationsList.length === 0 ? (
         <Paper withBorder p="xl">
           <Stack align="center" py={40} gap="md">
             <ThemeIcon color="gray" size={48} radius="xl" variant="light">

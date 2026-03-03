@@ -32,47 +32,13 @@ import {
   IconClock,
 } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
-import api from "../lib/api";
+import api from "../services/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
 
-interface InterviewSession {
-  session_id: number;
-  candidate_id: number;
-  cbi_template_id: number;
-  interviewer_id: number;
-  token: string;
-  status: string;
-  expires_at: string;
-  completed_at: string | null;
-  total_score: number | null;
-  max_possible_score: number | null;
-  percentage: number | null;
-  client_id: number;
-  created_at: string;
-  candidate?: {
-    candidate_id: number;
-    name: string;
-    surname: string;
-    position: string;
-  };
-  template?: { cbi_template_id: number; template_name: string };
-  interviewer?: { id: number; name: string; surname: string; email: string };
-}
-
-interface InterviewResponseItem {
-  response_id: number;
-  session_id: number;
-  question_id: number;
-  competency_id: number;
-  rating: number;
-  notes: string | null;
-  behavioral_flags: {
-    paste_detected?: boolean;
-    time_spent_seconds?: number;
-    keystroke_count?: number;
-    focus_lost_count?: number;
-  } | null;
-}
+import type {
+  InterviewSession,
+  InterviewResponseItem,
+} from "../services/interviews/interfaces";
 
 export default function Interviews() {
   const [sessions, setSessions] = useState<InterviewSession[]>([]);

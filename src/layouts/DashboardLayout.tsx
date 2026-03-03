@@ -30,6 +30,8 @@ import {
   IconBell,
   IconUserSearch,
   IconClipboardList,
+  IconSitemap,
+  IconTable,
 } from "@tabler/icons-react";
 import api from "../lib/api";
 
@@ -77,6 +79,16 @@ export default function DashboardLayout() {
   ];
 
   const isAdminActive = adminChildren.some((c) => location.pathname === c.path);
+
+  // Role Architecture sub-nav items
+  const roleArchChildren = [
+    { label: "Job Profiles", path: "/job-profiles", icon: IconBriefcase },
+    { label: "Competency Table", path: "/jp-competencies", icon: IconTable },
+  ];
+
+  const isRoleArchActive = roleArchChildren.some((c) =>
+    location.pathname.startsWith(c.path),
+  );
 
   // Recruitment sub-nav items
   const recruitmentChildren = [
@@ -285,29 +297,45 @@ export default function DashboardLayout() {
             ))}
           </NavLink>
 
-          {/* Job Profiles */}
+          {/* Role Architecture parent with sub-nav */}
           <NavLink
-            label="Job Profiles"
-            leftSection={<IconBriefcase size="1.1rem" stroke={1.5} />}
-            active={location.pathname === "/job-profiles"}
-            onClick={() => {
-              navigate("/job-profiles");
-              if (opened) toggle();
-            }}
+            label="Role Architecture"
+            leftSection={<IconSitemap size="1.1rem" stroke={1.5} />}
+            defaultOpened={isRoleArchActive}
             mb={4}
             style={() => ({
               borderRadius: "var(--mantine-radius-md)",
-              color:
-                location.pathname === "/job-profiles"
-                  ? "#fff"
-                  : "rgba(255,255,255,0.75)",
-              backgroundColor:
-                location.pathname === "/job-profiles"
-                  ? "rgba(255,255,255,0.15)"
-                  : "transparent",
+              color: isRoleArchActive ? "#fff" : "rgba(255,255,255,0.75)",
+              backgroundColor: isRoleArchActive
+                ? "rgba(255,255,255,0.08)"
+                : "transparent",
             })}
             variant="subtle"
-          />
+          >
+            {roleArchChildren.map((child) => (
+              <NavLink
+                key={child.path}
+                label={child.label}
+                leftSection={<child.icon size="0.9rem" stroke={1.5} />}
+                active={location.pathname.startsWith(child.path)}
+                onClick={() => {
+                  navigate(child.path);
+                  if (opened) toggle();
+                }}
+                mb={2}
+                style={() => ({
+                  borderRadius: "var(--mantine-radius-md)",
+                  color: location.pathname.startsWith(child.path)
+                    ? "#fff"
+                    : "rgba(255,255,255,0.6)",
+                  backgroundColor: location.pathname.startsWith(child.path)
+                    ? "rgba(255,255,255,0.15)"
+                    : "transparent",
+                })}
+                variant="subtle"
+              />
+            ))}
+          </NavLink>
 
           {/* CBI parent with sub-nav */}
           <NavLink

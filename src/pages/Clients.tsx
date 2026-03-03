@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Stack,
   Box,
@@ -26,27 +26,14 @@ import {
   IconTrash,
   IconBuilding,
 } from "@tabler/icons-react";
-import api from "../lib/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
-
-interface Client {
-  id: number;
-  name: string;
-  industry: string;
-  division: string;
-  contactName: string;
-  contactSurname: string;
-  position: string;
-  contactPhoneNumber: string;
-  contactEmail: string;
-  hrContactName: string;
-  hrContactSurname: string;
-  hrContactPhoneNumber: string;
-  hrContactEmail: string;
-  logo?: string;
-  modules: string[];
-  created_at: string;
-}
+import type { Client } from "../services/clients/interfaces";
+import {
+  useClients,
+  useCreateClient,
+  useUpdateClient,
+  useDeleteClient,
+} from "../services/clients/hooks";
 
 const moduleOptions = [
   { value: "Job Profile", label: "Job Profile" },
@@ -54,8 +41,11 @@ const moduleOptions = [
 ];
 
 export default function Clients() {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: clients = [], isLoading: loading } = useClients();
+  const createMutation = useCreateClient();
+  const updateMutation = useUpdateClient();
+  const deleteMutation = useDeleteClient();
+
   const [modalOpened, setModalOpened] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -94,26 +84,6 @@ export default function Clients() {
     },
   });
 
-  const fetchClients = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/clients");
-      setClients(res.data);
-    } catch {
-      notifications.show({
-        title: "Error",
-        message: "Failed to load clients",
-        color: "red",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
-
   const openCreate = () => {
     form.reset();
     setEditingId(null);
@@ -143,14 +113,14 @@ export default function Clients() {
   const handleSubmit = async (values: typeof form.values) => {
     try {
       if (editingId) {
-        await api.patch(`/clients/${editingId}`, values);
+        await updateMutation.mutateAsync({ id: editingId, data: values });
         notifications.show({
           title: "Updated",
           message: "Client updated",
           color: "green",
         });
       } else {
-        await api.post("/clients", values);
+        await createMutation.mutateAsync(values);
         notifications.show({
           title: "Created",
           message: "Client created",
@@ -160,7 +130,6 @@ export default function Clients() {
       setModalOpened(false);
       form.reset();
       setEditingId(null);
-      fetchClients();
     } catch (e: any) {
       notifications.show({
         title: "Error",
@@ -172,13 +141,12 @@ export default function Clients() {
 
   const handleDelete = async (id: number) => {
     try {
-      await api.delete(`/clients/${id}`);
+      await deleteMutation.mutateAsync(id);
       notifications.show({
         title: "Deleted",
         message: "Client removed",
         color: "green",
       });
-      fetchClients();
     } catch (e: any) {
       notifications.show({
         title: "Error",

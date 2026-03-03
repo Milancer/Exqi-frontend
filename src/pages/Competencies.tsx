@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Title,
@@ -36,51 +36,21 @@ import {
   IconWorld,
   IconHome,
 } from "@tabler/icons-react";
-import api from "../lib/api";
+import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useUrlFilters } from "../hooks/useUrlFilters";
-
-/* ────────────────────────────── Types ───────────────────────────── */
-
-interface CompetencyType {
-  competency_type_id: number;
-  competency_type: string;
-  status: string;
-  client_id?: number;
-}
-
-interface CompetencyCluster {
-  competency_cluster_id: number;
-  competency_type_id: number;
-  cluster_name: string;
-  description: string;
-  status: string;
-  client_id?: number;
-  competencyType?: CompetencyType;
-}
-
-interface Competency {
-  competency_id: number;
-  competency: string;
-  description: string;
-  indicators: string;
-  competency_type_id: number;
-  competency_cluster_id: number;
-  status: string;
-  client_id?: number;
-  competencyType?: CompetencyType;
-  competencyCluster?: CompetencyCluster;
-}
-
-interface CompetencyQuestion {
-  competency_question_id: number;
-  competency_id: number;
-  level: number;
-  question: string;
-  status: string;
-  client_id?: number;
-  competency?: { competency: string };
-}
+import type {
+  CompetencyType,
+  CompetencyCluster,
+  Competency,
+  CompetencyQuestion,
+} from "../services/competencies/interfaces";
+import {
+  useCompetencyTypes,
+  useCompetencyClusters,
+  useCompetencies as useCompetenciesQuery,
+  useCompetencyQuestions,
+} from "../services/competencies/hooks";
 
 /* ──────────────────────── Empty state helper ─────────────────────── */
 
@@ -1820,81 +1790,26 @@ function QuestionsTab({
    ═══════════════════════════════════════════════════════════════════ */
 
 export default function Competencies() {
-  const [types, setTypes] = useState<CompetencyType[]>([]);
-  const [clusters, setClusters] = useState<CompetencyCluster[]>([]);
-  const [competencies, setCompetencies] = useState<Competency[]>([]);
-  const [questions, setQuestions] = useState<CompetencyQuestion[]>([]);
-  const [loadingTypes, setLoadingTypes] = useState(true);
-  const [loadingClusters, setLoadingClusters] = useState(true);
-  const [loadingComps, setLoadingComps] = useState(true);
-  const [loadingQuestions, setLoadingQuestions] = useState(true);
-
-  const fetchTypes = useCallback(async () => {
-    try {
-      const res = await api.get("/competencies/types");
-      setTypes(res.data);
-    } catch {
-      notifications.show({
-        title: "Error",
-        message: "Failed to fetch types",
-        color: "red",
-      });
-    } finally {
-      setLoadingTypes(false);
-    }
-  }, []);
-
-  const fetchClusters = useCallback(async () => {
-    try {
-      const res = await api.get("/competencies/clusters");
-      setClusters(res.data);
-    } catch {
-      notifications.show({
-        title: "Error",
-        message: "Failed to fetch clusters",
-        color: "red",
-      });
-    } finally {
-      setLoadingClusters(false);
-    }
-  }, []);
-
-  const fetchCompetencies = useCallback(async () => {
-    try {
-      const res = await api.get("/competencies");
-      setCompetencies(res.data);
-    } catch {
-      notifications.show({
-        title: "Error",
-        message: "Failed to fetch competencies",
-        color: "red",
-      });
-    } finally {
-      setLoadingComps(false);
-    }
-  }, []);
-
-  const fetchQuestions = useCallback(async () => {
-    try {
-      const res = await api.get("/cbi/questions");
-      setQuestions(res.data);
-    } catch {
-      notifications.show({
-        title: "Error",
-        message: "Failed to fetch questions",
-        color: "red",
-      });
-    } finally {
-      setLoadingQuestions(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchTypes();
-    fetchClusters();
-    fetchCompetencies();
-    fetchQuestions();
-  }, [fetchTypes, fetchClusters, fetchCompetencies, fetchQuestions]);
+  const {
+    data: types = [],
+    isLoading: loadingTypes,
+    refetch: fetchTypes,
+  } = useCompetencyTypes();
+  const {
+    data: clusters = [],
+    isLoading: loadingClusters,
+    refetch: fetchClusters,
+  } = useCompetencyClusters();
+  const {
+    data: competencies = [],
+    isLoading: loadingComps,
+    refetch: fetchCompetencies,
+  } = useCompetenciesQuery();
+  const {
+    data: questions = [],
+    isLoading: loadingQuestions,
+    refetch: fetchQuestions,
+  } = useCompetencyQuestions();
 
   // ── URL-persisted state ──
   const [searchParams, setSearchParams] = useSearchParams();

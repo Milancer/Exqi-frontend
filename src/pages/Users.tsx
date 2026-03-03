@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Stack,
   Box,
@@ -20,27 +20,15 @@ import {
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { IconPlus, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react";
-import api from "../lib/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
-
-interface User {
-  id: number;
-  name: string;
-  surname: string;
-  idNumber: string;
-  phoneNumber: string;
-  email: string;
-  role: string;
-  status: string;
-  clientId: number;
-  client?: { id: number; name: string };
-  created_at: string;
-}
-
-interface Client {
-  id: number;
-  name: string;
-}
+import type { User } from "../services/users/interfaces";
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+} from "../services/users/hooks";
+import { useClients } from "../services/clients/hooks";
 
 const roleOptions = [
   { value: "ADMIN", label: "Admin" },
@@ -60,9 +48,12 @@ const roleColor: Record<string, string> = {
 };
 
 export default function Users() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: users = [], isLoading: loading } = useUsers();
+  const { data: clients = [] } = useClients();
+  const createMutation = useCreateUser();
+  const updateMutation = useUpdateUser();
+  const deleteMutation = useDeleteUser();
+
   const [modalOpened, setModalOpened] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -92,36 +83,6 @@ export default function Users() {
       clientId: (v) => (v ? null : "Client is required"),
     },
   });
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/users");
-      setUsers(res.data);
-    } catch {
-      notifications.show({
-        title: "Error",
-        message: "Failed to load users",
-        color: "red",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchClients = useCallback(async () => {
-    try {
-      const res = await api.get("/clients");
-      setClients(res.data);
-    } catch {
-      // silent — clients list is supplementary
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchUsers();
-    fetchClients();
-  }, [fetchUsers, fetchClients]);
 
   const openCreate = () => {
     form.reset();
@@ -155,14 +116,14 @@ export default function Users() {
         delete payload.password;
       }
       if (editingId) {
-        await api.patch(`/users/${editingId}`, payload);
+        await updateMutation.mutateAsync({ id: editingId, data: payload });
         notifications.show({
           title: "Updated",
           message: "User updated",
           color: "green",
         });
       } else {
-        await api.post("/users", payload);
+        await createMutation.mutateAsync(payload);
         notifications.show({
           title: "Created",
           message: "User created",
@@ -172,7 +133,6 @@ export default function Users() {
       setModalOpened(false);
       form.reset();
       setEditingId(null);
-      fetchUsers();
     } catch (e: any) {
       notifications.show({
         title: "Error",
@@ -184,13 +144,12 @@ export default function Users() {
 
   const handleDelete = async (id: number) => {
     try {
-      await api.delete(`/users/${id}`);
+      await deleteMutation.mutateAsync(id);
       notifications.show({
         title: "Deleted",
         message: "User removed",
         color: "green",
       });
-      fetchUsers();
     } catch (e: any) {
       notifications.show({
         title: "Error",

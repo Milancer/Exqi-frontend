@@ -6,6 +6,8 @@ import Dashboard from "./pages/Dashboard";
 import Competencies from "./pages/Competencies";
 import CbiTemplates from "./pages/CbiTemplates";
 import JobProfiles from "./pages/JobProfiles";
+import JobProfileDetail from "./pages/JobProfileDetail";
+import JpCompetencies from "./pages/JpCompetencies";
 import Users from "./pages/Users";
 import Clients from "./pages/Clients";
 import Candidates from "./pages/Candidates";
@@ -31,6 +33,8 @@ export default function AppRoutes() {
         <Route path="competencies" element={<Competencies />} />
         <Route path="cbi-templates" element={<CbiTemplates />} />
         <Route path="job-profiles" element={<JobProfiles />} />
+        <Route path="job-profiles/:id" element={<JobProfileDetail />} />
+        <Route path="jp-competencies" element={<JpCompetencies />} />
         <Route path="users" element={<Users />} />
         <Route path="clients" element={<Clients />} />
         <Route path="candidates" element={<Candidates />} />

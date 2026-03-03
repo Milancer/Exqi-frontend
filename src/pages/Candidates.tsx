@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Title,
   Button,
@@ -24,24 +24,21 @@ import {
   IconUserSearch,
 } from "@tabler/icons-react";
 import { useForm } from "@mantine/form";
-import api from "../lib/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
-
-interface Candidate {
-  candidate_id: number;
-  name: string;
-  surname: string;
-  email: string;
-  phone: string;
-  position: string;
-  client_id: number;
-  status: string;
-  created_at: string;
-}
+import type { Candidate } from "../services/candidates/interfaces";
+import {
+  useCandidates,
+  useCreateCandidate,
+  useUpdateCandidate,
+  useDeleteCandidate,
+} from "../services/candidates/hooks";
 
 export default function Candidates() {
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: candidates = [], isLoading: loading } = useCandidates();
+  const createMutation = useCreateCandidate();
+  const updateMutation = useUpdateCandidate();
+  const deleteMutation = useDeleteCandidate();
+
   const [modalOpened, setModalOpened] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -56,21 +53,6 @@ export default function Candidates() {
       position: "",
     },
   });
-
-  const fetchCandidates = async () => {
-    try {
-      const res = await api.get("/candidates");
-      setCandidates(res.data);
-    } catch (err) {
-      console.error("Failed to fetch candidates", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCandidates();
-  }, []);
 
   const positionOptions = useMemo(
     () =>
@@ -98,14 +80,13 @@ export default function Candidates() {
   const handleSubmit = async (values: typeof form.values) => {
     try {
       if (editingId) {
-        await api.patch(`/candidates/${editingId}`, values);
+        await updateMutation.mutateAsync({ id: editingId, data: values });
       } else {
-        await api.post("/candidates", values);
+        await createMutation.mutateAsync(values);
       }
       setModalOpened(false);
       form.reset();
       setEditingId(null);
-      fetchCandidates();
     } catch (err) {
       console.error("Failed to save candidate", err);
     }
@@ -126,8 +107,7 @@ export default function Candidates() {
   const handleDelete = async (id: number) => {
     if (!confirm("Archive this candidate?")) return;
     try {
-      await api.delete(`/candidates/${id}`);
-      fetchCandidates();
+      await deleteMutation.mutateAsync(id);
     } catch (err) {
       console.error("Failed to archive candidate", err);
     }

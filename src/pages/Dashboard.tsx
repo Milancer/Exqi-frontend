@@ -29,7 +29,7 @@ import {
 } from "@tabler/icons-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import api from "../lib/api";
+import api from "../services/api";
 
 interface Stats {
   competencies: number;
