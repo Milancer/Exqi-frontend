@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import {
-  Box,
   Paper,
   Title,
   Text,
@@ -11,7 +10,6 @@ import {
   Alert,
   List,
   ActionIcon,
-  rem,
   Card,
   ThemeIcon,
 } from "@mantine/core";
