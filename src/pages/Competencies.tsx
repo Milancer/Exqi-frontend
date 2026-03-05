@@ -234,7 +234,7 @@ function TypesTab({
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      {isGlobal && user?.role !== "admin" ? (
+                      {isGlobal && user?.role !== "ADMIN" ? (
                         <Text size="xs" c="dimmed">
                           Read-only
                         </Text>
@@ -499,7 +499,7 @@ function ClustersTab({
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      {isGlobal && user?.role !== "admin" ? (
+                      {isGlobal && user?.role !== "ADMIN" ? (
                         <Text size="xs" c="dimmed">
                           Read-only
                         </Text>
@@ -900,7 +900,7 @@ function CompetenciesTab({
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      {isGlobal && user?.role !== "admin" ? (
+                      {isGlobal && user?.role !== "ADMIN" ? (
                         <Text size="xs" c="dimmed">
                           Read-only
                         </Text>
@@ -1682,7 +1682,7 @@ function QuestionsTab({
                         }}
                         size="sm"
                         color="green"
-                        disabled={isGlobal && user?.role !== "admin"}
+                        disabled={isGlobal && user?.role !== "ADMIN"}
                       />
                     </Table.Td>
                     <Table.Td>
@@ -1702,7 +1702,7 @@ function QuestionsTab({
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      {isGlobal && user?.role !== "admin" ? (
+                      {isGlobal && user?.role !== "ADMIN" ? (
                         <Text size="xs" c="dimmed">
                           Read-only
                         </Text>

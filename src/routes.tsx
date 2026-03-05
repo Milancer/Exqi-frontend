@@ -14,6 +14,8 @@ import Candidates from "./pages/Candidates";
 import Interviews from "./pages/Interviews";
 import Notifications from "./pages/Notifications";
 import InterviewForm from "./pages/InterviewForm";
+import Profile from "./pages/Profile";
+import BulkImport from "./pages/BulkImport";
 
 export default function AppRoutes() {
   return (
@@ -37,9 +39,11 @@ export default function AppRoutes() {
         <Route path="jp-competencies" element={<JpCompetencies />} />
         <Route path="users" element={<Users />} />
         <Route path="clients" element={<Clients />} />
+        <Route path="bulk-import" element={<BulkImport />} />
         <Route path="candidates" element={<Candidates />} />
         <Route path="interviews" element={<Interviews />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -34,18 +34,23 @@ import {
   IconChecklist,
   IconSchool,
   IconFileDescription,
+  IconShieldCheck,
 } from "@tabler/icons-react";
 import api from "../services/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
 import type {
   JobProfile,
   JpCompetency,
+  JPReviewer,
 } from "../services/job-profiles/interfaces";
 
 const statusColors: Record<string, string> = {
   Active: "green",
   Draft: "blue",
   Archived: "gray",
+  "Awaiting Review": "yellow",
+  Approved: "teal",
+  Rejected: "red",
 };
 
 export default function JobProfiles() {
@@ -105,6 +110,12 @@ export default function JobProfiles() {
     other_requirements: "",
   });
 
+  // Reviewer candidates
+  const [reviewerCandidates, setReviewerCandidates] = useState<JPReviewer[]>(
+    [],
+  );
+  const [createReviewerId, setCreateReviewerId] = useState<string | null>(null);
+
   /* forms */
   const descForm = useForm({
     initialValues: {
@@ -151,10 +162,20 @@ export default function JobProfiles() {
     }
   }, []);
 
+  const fetchReviewerCandidates = useCallback(async () => {
+    try {
+      const res = await api.get("/job-profiles/reviewer-candidates");
+      setReviewerCandidates(res.data);
+    } catch {
+      /* silent */
+    }
+  }, []);
+
   useEffect(() => {
     fetchProfiles();
     fetchCompetencies();
-  }, [fetchProfiles, fetchCompetencies]);
+    fetchReviewerCandidates();
+  }, [fetchProfiles, fetchCompetencies, fetchReviewerCandidates]);
 
   /* ─── Handlers ─── */
   const openCreate = () => {
@@ -229,6 +250,17 @@ export default function JobProfiles() {
         }
       }
 
+      // Assign reviewer if selected
+      if (createReviewerId) {
+        try {
+          await api.post(`/job-profiles/${newId}/assign-reviewer`, {
+            reviewer_id: Number(createReviewerId),
+          });
+        } catch {
+          /* skip if fails */
+        }
+      }
+
       const addedCount =
         compEntries.length +
         createSkills.length +
@@ -250,11 +282,12 @@ export default function JobProfiles() {
         certifications: "",
         other_requirements: "",
       });
+      setCreateReviewerId(null);
       setModalOpened(false);
       descForm.reset();
 
-      // Navigate to the newly created profile
-      navigate(`/job-profiles/${newId}`);
+      // Stay on the list → refresh data
+      fetchProfiles();
     } catch (e: any) {
       notifications.show({
         title: "Error",
@@ -324,6 +357,9 @@ export default function JobProfiles() {
             data={[
               { value: "Draft", label: "Draft" },
               { value: "Active", label: "Active" },
+              { value: "Awaiting Review", label: "Awaiting Review" },
+              { value: "Approved", label: "Approved" },
+              { value: "Rejected", label: "Rejected" },
               { value: "Archived", label: "Archived" },
             ]}
             value={f.get("jpStatus") || null}
@@ -461,6 +497,7 @@ export default function JobProfiles() {
             certifications: "",
             other_requirements: "",
           });
+          setCreateReviewerId(null);
         }}
         title="Create Job Profile"
         size="xl"
@@ -510,6 +547,12 @@ export default function JobProfiles() {
               leftSection={<IconSchool size={14} />}
             >
               Requirements
+            </Tabs.Tab>
+            <Tabs.Tab
+              value="approval"
+              leftSection={<IconShieldCheck size={14} />}
+            >
+              Approval
             </Tabs.Tab>
           </Tabs.List>
 
@@ -1086,6 +1129,34 @@ export default function JobProfiles() {
                 }
                 minRows={2}
               />
+            </Stack>
+          </Tabs.Panel>
+
+          {/* Approval Tab */}
+          <Tabs.Panel value="approval">
+            <Stack>
+              <Text size="sm" c="dimmed">
+                Optionally assign an Office Manager to review this job profile
+                after creation.
+              </Text>
+              <Select
+                label="Assign Reviewer (Office Manager)"
+                placeholder="Select a reviewer (optional)"
+                data={reviewerCandidates.map((r) => ({
+                  value: String(r.id),
+                  label: `${r.name} ${r.surname} (${r.email})`,
+                }))}
+                value={createReviewerId}
+                onChange={setCreateReviewerId}
+                searchable
+                clearable
+              />
+              {createReviewerId && (
+                <Text size="xs" c="dimmed">
+                  The selected reviewer will be notified after the profile is
+                  created and its status will be set to "Awaiting Review".
+                </Text>
+              )}
             </Stack>
           </Tabs.Panel>
         </Tabs>

@@ -20,6 +20,9 @@ import {
   Select,
   Loader,
   Center,
+  Modal,
+  ThemeIcon,
+  Alert,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -32,19 +35,29 @@ import {
   IconFileDescription,
   IconPlus,
   IconTrash,
+  IconShieldCheck,
+  IconCheck,
+  IconX,
+  IconSend,
+  IconInfoCircle,
 } from "@tabler/icons-react";
 import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 import type {
   JobProfile,
   JpCompetency,
   JPCompetencyLink,
+  JPReviewer,
 } from "../services/job-profiles/interfaces";
 
 const statusColors: Record<string, string> = {
   Active: "green",
   Draft: "blue",
   Archived: "gray",
+  "Awaiting Review": "yellow",
+  Approved: "teal",
+  Rejected: "red",
 };
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -54,6 +67,7 @@ const statusColors: Record<string, string> = {
 export default function JobProfileDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const profileId = Number(id);
 
   /* ─── State ─── */
@@ -82,6 +96,18 @@ export default function JobProfileDetail() {
   const [reqExperience, setReqExperience] = useState("");
   const [reqCerts, setReqCerts] = useState("");
   const [reqOther, setReqOther] = useState("");
+
+  // Reviewer / Approval
+  const [reviewerCandidates, setReviewerCandidates] = useState<JPReviewer[]>(
+    [],
+  );
+  const [selectedReviewerId, setSelectedReviewerId] = useState<string | null>(
+    null,
+  );
+  const [reviewConfirmOpen, setReviewConfirmOpen] = useState(false);
+  const [reviewAction, setReviewAction] = useState<"approve" | "reject">(
+    "approve",
+  );
 
   /* ─── Description form ─── */
   const descForm = useForm({
@@ -150,11 +176,26 @@ export default function JobProfileDetail() {
     }
   }, []);
 
+  const fetchReviewerCandidates = useCallback(async () => {
+    try {
+      const res = await api.get("/job-profiles/reviewer-candidates");
+      setReviewerCandidates(res.data);
+    } catch {
+      /* silent */
+    }
+  }, []);
+
   useEffect(() => {
     fetchProfile();
     fetchCompetencies();
     fetchAllProfiles();
-  }, [fetchProfile, fetchCompetencies, fetchAllProfiles]);
+    fetchReviewerCandidates();
+  }, [
+    fetchProfile,
+    fetchCompetencies,
+    fetchAllProfiles,
+    fetchReviewerCandidates,
+  ]);
 
   // Populate form when profile loads
   useEffect(() => {
@@ -374,6 +415,62 @@ export default function JobProfileDetail() {
     }
   };
 
+  // Reviewer / Approval handlers
+  const handleAssignReviewer = async () => {
+    if (!profile || !selectedReviewerId) return;
+    try {
+      setSaving(true);
+      await api.post(
+        `/job-profiles/${profile.job_profile_id}/assign-reviewer`,
+        {
+          reviewer_id: Number(selectedReviewerId),
+        },
+      );
+      notifications.show({
+        title: "Reviewer Assigned",
+        message: "The reviewer has been notified",
+        color: "green",
+      });
+      await refreshProfile();
+    } catch (e: any) {
+      notifications.show({
+        title: "Error",
+        message: e.response?.data?.message || "Failed to assign reviewer",
+        color: "red",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReviewAction = async () => {
+    if (!profile) return;
+    try {
+      setSaving(true);
+      await api.post(`/job-profiles/${profile.job_profile_id}/review`, {
+        action: reviewAction,
+      });
+      notifications.show({
+        title: reviewAction === "approve" ? "Approved" : "Rejected",
+        message:
+          reviewAction === "approve"
+            ? "Job profile has been approved"
+            : "Job profile has been returned to Draft",
+        color: reviewAction === "approve" ? "green" : "orange",
+      });
+      setReviewConfirmOpen(false);
+      await refreshProfile();
+    } catch (e: any) {
+      notifications.show({
+        title: "Error",
+        message: e.response?.data?.message || "Failed to process review",
+        color: "red",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   /* ─── Initial loading state ─── */
   if (initialLoading && !hasLoaded.current) {
     return (
@@ -469,6 +566,17 @@ export default function JobProfileDetail() {
               leftSection={<IconSchool size={14} />}
             >
               Requirements
+            </Tabs.Tab>
+            <Tabs.Tab
+              value="approval"
+              leftSection={<IconShieldCheck size={14} />}
+            >
+              Approval
+              {profile.status === "Awaiting Review" && (
+                <Badge size="xs" variant="filled" color="yellow" ml={4}>
+                  !
+                </Badge>
+              )}
             </Tabs.Tab>
           </Tabs.List>
 
@@ -1038,8 +1146,207 @@ export default function JobProfileDetail() {
               </Button>
             </Stack>
           </Tabs.Panel>
+
+          {/* ─── Approval Tab ─── */}
+          <Tabs.Panel value="approval" pt="md">
+            <Stack>
+              <Text size="sm" c="dimmed">
+                Assign an Office Manager to review this job profile. Once
+                submitted, the reviewer will be notified and can approve or
+                reject the profile.
+              </Text>
+
+              {/* Current status info */}
+              <Paper withBorder p="md" radius="md">
+                <Group>
+                  <ThemeIcon
+                    variant="light"
+                    size="lg"
+                    radius="md"
+                    color={statusColors[profile.status] || "gray"}
+                  >
+                    <IconInfoCircle size={18} />
+                  </ThemeIcon>
+                  <Box>
+                    <Text size="sm" fw={500}>
+                      Current Status
+                    </Text>
+                    <Group gap="xs">
+                      <Badge
+                        color={statusColors[profile.status] || "gray"}
+                        variant="light"
+                      >
+                        {profile.status}
+                      </Badge>
+                      {profile.reviewer && (
+                        <Text size="xs" c="dimmed">
+                          Reviewer: {profile.reviewer.name}{" "}
+                          {profile.reviewer.surname}
+                        </Text>
+                      )}
+                      {profile.reviewed_at && (
+                        <Text size="xs" c="dimmed">
+                          Reviewed:{" "}
+                          {new Date(profile.reviewed_at).toLocaleDateString()}
+                        </Text>
+                      )}
+                    </Group>
+                  </Box>
+                </Group>
+              </Paper>
+
+              {/* Creator view: assign reviewer */}
+              {(profile.status === "Draft" ||
+                profile.status === "Rejected") && (
+                <Paper withBorder p="md" radius="md">
+                  <Text size="sm" fw={500} mb="sm">
+                    Submit for Review
+                  </Text>
+                  <Group align="end">
+                    <Select
+                      label="Assign Reviewer (Office Manager)"
+                      placeholder="Select a reviewer"
+                      data={reviewerCandidates.map((r) => ({
+                        value: String(r.id),
+                        label: `${r.name} ${r.surname} (${r.email})`,
+                      }))}
+                      value={selectedReviewerId}
+                      onChange={setSelectedReviewerId}
+                      searchable
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      leftSection={<IconSend size={16} />}
+                      onClick={handleAssignReviewer}
+                      disabled={!selectedReviewerId}
+                      loading={saving}
+                      variant="gradient"
+                      gradient={{ from: "grape", to: "violet", deg: 135 }}
+                    >
+                      Submit for Review
+                    </Button>
+                  </Group>
+                </Paper>
+              )}
+
+              {/* Reviewer view: approve / reject */}
+              {profile.status === "Awaiting Review" &&
+                profile.reviewer_id !== undefined &&
+                String(profile.reviewer_id) === String(authUser?.userId) && (
+                  <Paper withBorder p="md" radius="md">
+                    <Alert
+                      variant="light"
+                      color="yellow"
+                      title="Review Required"
+                      mb="md"
+                    >
+                      You have been assigned to review this job profile. Please
+                      review all tabs and then approve or reject.
+                    </Alert>
+                    <Group justify="flex-end">
+                      <Button
+                        variant="outline"
+                        color="red"
+                        leftSection={<IconX size={16} />}
+                        onClick={() => {
+                          setReviewAction("reject");
+                          setReviewConfirmOpen(true);
+                        }}
+                        loading={saving}
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        color="green"
+                        leftSection={<IconCheck size={16} />}
+                        onClick={() => {
+                          setReviewAction("approve");
+                          setReviewConfirmOpen(true);
+                        }}
+                        loading={saving}
+                      >
+                        Approve
+                      </Button>
+                    </Group>
+                  </Paper>
+                )}
+
+              {/* Waiting state (creator sees this after submitting) */}
+              {profile.status === "Awaiting Review" &&
+                String(profile.reviewer_id) !== String(authUser?.userId) && (
+                  <Alert variant="light" color="blue" title="Under Review">
+                    This job profile has been submitted for review by{" "}
+                    <strong>
+                      {profile.reviewer?.name} {profile.reviewer?.surname}
+                    </strong>
+                    . You will be notified once it has been reviewed.
+                  </Alert>
+                )}
+
+              {/* Approved state */}
+              {profile.status === "Approved" && (
+                <Alert variant="light" color="green" title="Approved">
+                  This job profile has been approved
+                  {profile.reviewer && (
+                    <>
+                      {" "}
+                      by{" "}
+                      <strong>
+                        {profile.reviewer.name} {profile.reviewer.surname}
+                      </strong>
+                    </>
+                  )}
+                  {profile.reviewed_at && (
+                    <>
+                      {" "}
+                      on {new Date(profile.reviewed_at).toLocaleDateString()}
+                    </>
+                  )}
+                  .
+                </Alert>
+              )}
+            </Stack>
+          </Tabs.Panel>
         </Tabs>
       </Paper>
+
+      {/* ─── Review confirmation modal ─── */}
+      <Modal
+        opened={reviewConfirmOpen}
+        onClose={() => setReviewConfirmOpen(false)}
+        title="Confirm Review Action"
+        centered
+        size="sm"
+      >
+        <Stack>
+          <Text size="sm">
+            Are you sure you want to{" "}
+            <strong>{reviewAction === "approve" ? "approve" : "reject"}</strong>{" "}
+            this job profile?
+          </Text>
+          {reviewAction === "reject" && (
+            <Text size="xs" c="dimmed">
+              Rejecting will return the profile to Draft status so the creator
+              can make changes.
+            </Text>
+          )}
+          <Group justify="flex-end">
+            <Button
+              variant="subtle"
+              onClick={() => setReviewConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              color={reviewAction === "approve" ? "green" : "red"}
+              onClick={handleReviewAction}
+              loading={saving}
+            >
+              {reviewAction === "approve" ? "Approve" : "Reject"}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Stack>
   );
 }

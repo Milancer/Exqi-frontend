@@ -400,7 +400,11 @@ export default function Users() {
               searchable
               {...form.getInputProps("clientId")}
             />
-            <Button type="submit" fullWidth>
+            <Button
+              type="submit"
+              fullWidth
+              loading={createMutation.isPending || updateMutation.isPending}
+            >
               {editingId ? "Update" : "Create"}
             </Button>
           </Stack>

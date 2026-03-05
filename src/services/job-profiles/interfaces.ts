@@ -60,6 +60,14 @@ export interface JPRequirement {
   other_requirements: string;
 }
 
+export interface JPReviewer {
+  id: number;
+  name: string;
+  surname: string;
+  email: string;
+  role: string;
+}
+
 export interface JobProfile {
   job_profile_id: number;
   job_title: string;
@@ -72,6 +80,10 @@ export interface JobProfile {
   job_grade_id: number | null;
   reports_to: number | null;
   status: string;
+  reviewer_id?: number | null;
+  reviewer?: JPReviewer | null;
+  reviewed_at?: string | null;
+  user_id?: string;
   competencies?: JPCompetencyLink[];
   skills?: JPSkill[];
   deliverables?: JPDeliverable[];

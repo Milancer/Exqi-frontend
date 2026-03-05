@@ -416,7 +416,12 @@ export default function Clients() {
               {...form.getInputProps("modules")}
             />
 
-            <Button type="submit" fullWidth mt="sm">
+            <Button
+              type="submit"
+              fullWidth
+              mt="sm"
+              loading={createMutation.isPending || updateMutation.isPending}
+            >
               {editingId ? "Update" : "Create"}
             </Button>
           </Stack>

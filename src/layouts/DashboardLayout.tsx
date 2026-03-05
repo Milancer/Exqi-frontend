@@ -32,6 +32,7 @@ import {
   IconClipboardList,
   IconSitemap,
   IconTable,
+  IconUpload,
 } from "@tabler/icons-react";
 import api from "../lib/api";
 
@@ -66,16 +67,17 @@ export default function DashboardLayout() {
 
   // CBI sub-nav items
   const cbiChildren = [
-    { label: "Competencies", path: "/competencies" },
-    { label: "CBI Templates", path: "/cbi-templates" },
+    { label: "Competencies", path: "/competencies", icon: IconTable },
+    { label: "CBI Templates", path: "/cbi-templates", icon: IconClipboardList },
   ];
 
   const isCbiActive = cbiChildren.some((c) => location.pathname === c.path);
 
   // Admin sub-nav items
   const adminChildren = [
-    { label: "Users", path: "/users" },
-    { label: "Clients", path: "/clients" },
+    { label: "Users", path: "/users", icon: IconUsers },
+    { label: "Clients", path: "/clients", icon: IconBuilding },
+    { label: "Bulk Import", path: "/bulk-import", icon: IconUpload },
   ];
 
   const isAdminActive = adminChildren.some((c) => location.pathname === c.path);
@@ -196,6 +198,7 @@ export default function DashboardLayout() {
                   leftSection={
                     <IconUser style={{ width: rem(14), height: rem(14) }} />
                   }
+                  onClick={() => navigate("/profile")}
                 >
                   Profile
                 </Menu.Item>
@@ -269,11 +272,7 @@ export default function DashboardLayout() {
                 key={child.path}
                 label={child.label}
                 leftSection={
-                  child.path === "/users" ? (
-                    <IconUsers size="0.9rem" stroke={1.5} />
-                  ) : (
-                    <IconBuilding size="0.9rem" stroke={1.5} />
-                  )
+                  child.icon ? <child.icon size="0.9rem" stroke={1.5} /> : null
                 }
                 active={location.pathname === child.path}
                 onClick={() => {
@@ -356,6 +355,9 @@ export default function DashboardLayout() {
               <NavLink
                 key={child.path}
                 label={child.label}
+                leftSection={
+                  child.icon ? <child.icon size="0.9rem" stroke={1.5} /> : null
+                }
                 active={location.pathname === child.path}
                 onClick={() => {
                   navigate(child.path);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { notifications } from "@mantine/notifications";
 import {
   Title,
   Button,
@@ -71,8 +72,12 @@ export default function Interviews() {
     try {
       const res = await api.get("/interviews");
       setSessions(res.data);
-    } catch (err) {
-      console.error("Failed to fetch interviews", err);
+    } catch (err: any) {
+      notifications.show({
+        title: "Error",
+        message: err.response?.data?.message || "Failed to fetch interviews",
+        color: "red",
+      });
     } finally {
       setLoading(false);
     }
@@ -92,8 +97,12 @@ export default function Interviews() {
           (u: any) => u.role === "OFFICE_MANAGER" || u.role === "ADMIN",
         ),
       );
-    } catch (err) {
-      console.error("Failed to fetch support data", err);
+    } catch (err: any) {
+      notifications.show({
+        title: "Error",
+        message: err.response?.data?.message || "Failed to fetch support data",
+        color: "red",
+      });
     }
   };
 
@@ -129,8 +138,12 @@ export default function Interviews() {
       setModalOpened(false);
       form.reset();
       fetchSessions();
-    } catch (err) {
-      console.error("Failed to create interview", err);
+    } catch (err: any) {
+      notifications.show({
+        title: "Error",
+        message: err.response?.data?.message || "Failed to create interview",
+        color: "red",
+      });
     }
   };
 
@@ -139,8 +152,12 @@ export default function Interviews() {
     try {
       await api.delete(`/interviews/${id}`);
       fetchSessions();
-    } catch (err) {
-      console.error("Failed to cancel interview", err);
+    } catch (err: any) {
+      notifications.show({
+        title: "Error",
+        message: err.response?.data?.message || "Failed to cancel interview",
+        color: "red",
+      });
     }
   };
 
@@ -153,8 +170,12 @@ export default function Interviews() {
           `/interviews/${session.session_id}/responses`,
         );
         setResponses(res.data);
-      } catch (err) {
-        console.error("Failed to fetch responses", err);
+      } catch (err: any) {
+        notifications.show({
+          title: "Error",
+          message: err.response?.data?.message || "Failed to fetch responses",
+          color: "red",
+        });
       } finally {
         setDetailLoading(false);
       }
@@ -179,9 +200,12 @@ export default function Interviews() {
       setDetailSession(res.data);
       setIsScoring(false);
       fetchSessions(); // Update list view too
-    } catch (err) {
-      console.error("Failed to save scores", err);
-      alert("Failed to save scores. Please try again.");
+    } catch (err: any) {
+      notifications.show({
+        title: "Error",
+        message: err.response?.data?.message || "Failed to save scores",
+        color: "red",
+      });
     } finally {
       setSavingScores(false);
     }
