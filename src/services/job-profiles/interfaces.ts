@@ -39,7 +39,9 @@ export interface JPCompetencyLink {
 
 export interface JPSkill {
   job_profile_skill_id: number;
-  skill_name: string;
+  skill_id?: number;
+  skill_name?: string;
+  skill?: { skill_id: number; skill: string };
   level: number;
   is_critical: boolean;
   status: string;

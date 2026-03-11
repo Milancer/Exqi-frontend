@@ -189,7 +189,7 @@ const JobProfilePDF = ({ profile }: { profile: JobProfile }) => (
             </View>
             {profile.skills.map((skill, idx) => (
               <View key={idx} style={pdfStyles.tableRow}>
-                <PDFText style={[pdfStyles.tableCell, { width: "60%" }]}>{skill.skill_name}</PDFText>
+                <PDFText style={[pdfStyles.tableCell, { width: "60%" }]}>{skill.skill_name || skill.skill?.skill || '-'}</PDFText>
                 <PDFText style={[pdfStyles.tableCell, { width: "20%", textAlign: "center" }]}>
                   {skill.level}
                 </PDFText>
@@ -429,7 +429,7 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
                   <Table.Tbody>
                     {profile.skills.map((skill) => (
                       <Table.Tr key={skill.job_profile_skill_id}>
-                        <Table.Td>{skill.skill_name}</Table.Td>
+                        <Table.Td>{skill.skill_name || skill.skill?.skill || '-'}</Table.Td>
                         <Table.Td ta="center">
                           <Badge size="sm" variant="light" color="teal">L{skill.level}</Badge>
                         </Table.Td>

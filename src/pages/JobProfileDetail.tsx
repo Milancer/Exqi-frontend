@@ -984,7 +984,7 @@ export default function JobProfileDetail() {
                   <Table.Tbody>
                     {profile.skills.map((s) => (
                       <Table.Tr key={s.job_profile_skill_id}>
-                        <Table.Td>{s.skill_name}</Table.Td>
+                        <Table.Td>{s.skill_name || s.skill?.skill || '-'}</Table.Td>
                         <Table.Td>
                           <Badge variant="light" color="teal" size="sm">
                             L{s.level}
