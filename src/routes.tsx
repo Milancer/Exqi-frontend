@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ProtectedRoute, AdminRoute, ModuleRoute } from "./components/ProtectedRoute";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -36,16 +36,26 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<Dashboard />} />
-        <Route path="competencies" element={<Competencies />} />
-        <Route path="cbi-templates" element={<CbiTemplates />} />
-        <Route path="job-profiles" element={<JobProfiles />} />
-        <Route path="job-profiles/:id" element={<JobProfileDetail />} />
-        <Route path="jp-competencies" element={<JpCompetencies />} />
+
+        {/* CBI Module routes */}
+        <Route path="competencies" element={<ModuleRoute module="Competency Based Interview"><Competencies /></ModuleRoute>} />
+        <Route path="cbi-templates" element={<ModuleRoute module="Competency Based Interview"><CbiTemplates /></ModuleRoute>} />
+
+        {/* Job Profile Module routes */}
+        <Route path="job-profiles" element={<ModuleRoute module="Job Profile"><JobProfiles /></ModuleRoute>} />
+        <Route path="job-profiles/:id" element={<ModuleRoute module="Job Profile"><JobProfileDetail /></ModuleRoute>} />
+        <Route path="jp-competencies" element={<ModuleRoute module="Job Profile"><JpCompetencies /></ModuleRoute>} />
+
+        {/* Admin routes */}
         <Route path="users" element={<Users />} />
-        <Route path="clients" element={<Clients />} />
-        <Route path="bulk-import" element={<BulkImport />} />
+        <Route path="clients" element={<AdminRoute><Clients /></AdminRoute>} />
+        <Route path="bulk-import" element={<AdminRoute><BulkImport /></AdminRoute>} />
+
+        {/* Recruitment routes */}
         <Route path="candidates" element={<Candidates />} />
         <Route path="interviews" element={<Interviews />} />
+
+        {/* General routes */}
         <Route path="notifications" element={<Notifications />} />
         <Route path="profile" element={<Profile />} />
       </Route>

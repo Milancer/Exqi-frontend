@@ -64,8 +64,14 @@ export default function DashboardLayout() {
   }, []);
 
   const initials = user?.email ? user.email.charAt(0).toUpperCase() : "?";
+  const isAdmin = user?.role === "ADMIN";
+  const userModules = user?.modules || [];
 
-  // CBI sub-nav items
+  // Check if user has access to modules
+  const hasJobProfileModule = isAdmin || userModules.includes("Job Profile");
+  const hasCbiModule = isAdmin || userModules.includes("Competency Based Interview");
+
+  // CBI sub-nav items (only if has CBI module)
   const cbiChildren = [
     { label: "Competencies", path: "/competencies", icon: IconTable },
     { label: "CBI Templates", path: "/cbi-templates", icon: IconClipboardList },
@@ -73,16 +79,16 @@ export default function DashboardLayout() {
 
   const isCbiActive = cbiChildren.some((c) => location.pathname === c.path);
 
-  // Admin sub-nav items
+  // Admin sub-nav items - filter based on role
   const adminChildren = [
     { label: "Users", path: "/users", icon: IconUsers },
-    { label: "Clients", path: "/clients", icon: IconBuilding },
-    { label: "Bulk Import", path: "/bulk-import", icon: IconUpload },
+    ...(isAdmin ? [{ label: "Clients", path: "/clients", icon: IconBuilding }] : []),
+    ...(isAdmin ? [{ label: "Bulk Import", path: "/bulk-import", icon: IconUpload }] : []),
   ];
 
   const isAdminActive = adminChildren.some((c) => location.pathname === c.path);
 
-  // Role Architecture sub-nav items
+  // Role Architecture sub-nav items (only if has Job Profile module)
   const roleArchChildren = [
     { label: "Job Profiles", path: "/job-profiles", icon: IconBriefcase },
     { label: "Competency Table", path: "/jp-competencies", icon: IconTable },
@@ -296,89 +302,93 @@ export default function DashboardLayout() {
             ))}
           </NavLink>
 
-          {/* Role Architecture parent with sub-nav */}
-          <NavLink
-            label="Role Architecture"
-            leftSection={<IconSitemap size="1.1rem" stroke={1.5} />}
-            defaultOpened={isRoleArchActive}
-            mb={4}
-            style={() => ({
-              borderRadius: "var(--mantine-radius-md)",
-              color: isRoleArchActive ? "#fff" : "rgba(255,255,255,0.75)",
-              backgroundColor: isRoleArchActive
-                ? "rgba(255,255,255,0.08)"
-                : "transparent",
-            })}
-            variant="subtle"
-          >
-            {roleArchChildren.map((child) => (
-              <NavLink
-                key={child.path}
-                label={child.label}
-                leftSection={<child.icon size="0.9rem" stroke={1.5} />}
-                active={location.pathname.startsWith(child.path)}
-                onClick={() => {
-                  navigate(child.path);
-                  if (opened) toggle();
-                }}
-                mb={2}
-                style={() => ({
-                  borderRadius: "var(--mantine-radius-md)",
-                  color: location.pathname.startsWith(child.path)
-                    ? "#fff"
-                    : "rgba(255,255,255,0.6)",
-                  backgroundColor: location.pathname.startsWith(child.path)
-                    ? "rgba(255,255,255,0.15)"
-                    : "transparent",
-                })}
-                variant="subtle"
-              />
-            ))}
-          </NavLink>
-
-          {/* CBI parent with sub-nav */}
-          <NavLink
-            label="CBI"
-            leftSection={<IconBrain size="1.1rem" stroke={1.5} />}
-            defaultOpened={isCbiActive}
-            mb={4}
-            style={() => ({
-              borderRadius: "var(--mantine-radius-md)",
-              color: isCbiActive ? "#fff" : "rgba(255,255,255,0.75)",
-              backgroundColor: isCbiActive
-                ? "rgba(255,255,255,0.08)"
-                : "transparent",
-            })}
-            variant="subtle"
-          >
-            {cbiChildren.map((child) => (
-              <NavLink
-                key={child.path}
-                label={child.label}
-                leftSection={
-                  child.icon ? <child.icon size="0.9rem" stroke={1.5} /> : null
-                }
-                active={location.pathname === child.path}
-                onClick={() => {
-                  navigate(child.path);
-                  if (opened) toggle();
-                }}
-                mb={2}
-                style={() => ({
-                  borderRadius: "var(--mantine-radius-md)",
-                  color:
-                    location.pathname === child.path
+          {/* Role Architecture parent with sub-nav - only if has module */}
+          {hasJobProfileModule && (
+            <NavLink
+              label="Role Architecture"
+              leftSection={<IconSitemap size="1.1rem" stroke={1.5} />}
+              defaultOpened={isRoleArchActive}
+              mb={4}
+              style={() => ({
+                borderRadius: "var(--mantine-radius-md)",
+                color: isRoleArchActive ? "#fff" : "rgba(255,255,255,0.75)",
+                backgroundColor: isRoleArchActive
+                  ? "rgba(255,255,255,0.08)"
+                  : "transparent",
+              })}
+              variant="subtle"
+            >
+              {roleArchChildren.map((child) => (
+                <NavLink
+                  key={child.path}
+                  label={child.label}
+                  leftSection={<child.icon size="0.9rem" stroke={1.5} />}
+                  active={location.pathname.startsWith(child.path)}
+                  onClick={() => {
+                    navigate(child.path);
+                    if (opened) toggle();
+                  }}
+                  mb={2}
+                  style={() => ({
+                    borderRadius: "var(--mantine-radius-md)",
+                    color: location.pathname.startsWith(child.path)
                       ? "#fff"
                       : "rgba(255,255,255,0.6)",
-                  backgroundColor:
-                    location.pathname === child.path
+                    backgroundColor: location.pathname.startsWith(child.path)
                       ? "rgba(255,255,255,0.15)"
                       : "transparent",
-                })}
-                variant="subtle"
-              />
-            ))}
-          </NavLink>
+                  })}
+                  variant="subtle"
+                />
+              ))}
+            </NavLink>
+          )}
+
+          {/* CBI parent with sub-nav - only if has module */}
+          {hasCbiModule && (
+            <NavLink
+              label="CBI"
+              leftSection={<IconBrain size="1.1rem" stroke={1.5} />}
+              defaultOpened={isCbiActive}
+              mb={4}
+              style={() => ({
+                borderRadius: "var(--mantine-radius-md)",
+                color: isCbiActive ? "#fff" : "rgba(255,255,255,0.75)",
+                backgroundColor: isCbiActive
+                  ? "rgba(255,255,255,0.08)"
+                  : "transparent",
+              })}
+              variant="subtle"
+            >
+              {cbiChildren.map((child) => (
+                <NavLink
+                  key={child.path}
+                  label={child.label}
+                  leftSection={
+                    child.icon ? <child.icon size="0.9rem" stroke={1.5} /> : null
+                  }
+                  active={location.pathname === child.path}
+                  onClick={() => {
+                    navigate(child.path);
+                    if (opened) toggle();
+                  }}
+                  mb={2}
+                  style={() => ({
+                    borderRadius: "var(--mantine-radius-md)",
+                    color:
+                      location.pathname === child.path
+                        ? "#fff"
+                        : "rgba(255,255,255,0.6)",
+                    backgroundColor:
+                      location.pathname === child.path
+                        ? "rgba(255,255,255,0.15)"
+                        : "transparent",
+                  })}
+                  variant="subtle"
+                />
+              ))}
+            </NavLink>
+          )}
 
           {/* Recruitment parent with sub-nav */}
           <NavLink
