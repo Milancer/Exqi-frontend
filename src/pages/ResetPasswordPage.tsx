@@ -16,7 +16,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import { IconBrain, IconLock, IconAlertCircle, IconCheck } from "@tabler/icons-react";
+import { IconLock, IconAlertCircle, IconCheck } from "@tabler/icons-react";
 import api from "../services/api";
 
 type PageState = "loading" | "valid" | "invalid" | "success";
