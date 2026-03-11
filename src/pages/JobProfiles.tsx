@@ -37,7 +37,9 @@ import {
   IconSchool,
   IconFileDescription,
   IconShieldCheck,
+  IconEye,
 } from "@tabler/icons-react";
+import JobProfilePreview from "../components/JobProfilePreview";
 import api from "../services/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
 import type {
@@ -60,6 +62,11 @@ export default function JobProfiles() {
   const [profiles, setProfiles] = useState<JobProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpened, setModalOpened] = useState(false);
+
+  // Preview modal state
+  const [previewOpened, setPreviewOpened] = useState(false);
+  const [previewProfile, setPreviewProfile] = useState<JobProfile | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   // URL-persisted filters
   const f = useUrlFilters(["search", "jpStatus", "division", "page"] as const);
@@ -333,6 +340,23 @@ export default function JobProfiles() {
     }
   };
 
+  const handleViewProfile = async (id: number) => {
+    setLoadingPreview(true);
+    try {
+      const res = await api.get(`/job-profiles/${id}`);
+      setPreviewProfile(res.data);
+      setPreviewOpened(true);
+    } catch {
+      notifications.show({
+        title: "Error",
+        message: "Failed to load job profile",
+        color: "red",
+      });
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this job profile?")) return;
     try {
@@ -490,7 +514,17 @@ export default function JobProfiles() {
                   </Table.Td>
                   <Table.Td>
                     <Group gap={4} wrap="nowrap">
-                      <Tooltip label="View / Edit">
+                      <Tooltip label="Preview & Download">
+                        <ActionIcon
+                          variant="subtle"
+                          color="teal"
+                          onClick={() => handleViewProfile(p.job_profile_id)}
+                          loading={loadingPreview}
+                        >
+                          <IconEye size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Edit">
                         <ActionIcon
                           variant="subtle"
                           color="blue"
@@ -1212,6 +1246,16 @@ export default function JobProfiles() {
           </Tabs.Panel>
         </Tabs>
       </Modal>
+
+      {/* Job Profile Preview Modal */}
+      <JobProfilePreview
+        profile={previewProfile}
+        opened={previewOpened}
+        onClose={() => {
+          setPreviewOpened(false);
+          setPreviewProfile(null);
+        }}
+      />
     </Stack>
   );
 }
