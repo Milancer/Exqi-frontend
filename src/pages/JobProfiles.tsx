@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Title,
@@ -21,7 +21,9 @@ import {
   Select,
   Loader,
   Center,
+  Pagination,
 } from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import {
@@ -60,29 +62,19 @@ export default function JobProfiles() {
   const [modalOpened, setModalOpened] = useState(false);
 
   // URL-persisted filters
-  const f = useUrlFilters(["search", "jpStatus", "division"] as const);
+  const f = useUrlFilters(["search", "jpStatus", "division", "page"] as const);
 
-  // Derive filter options from data
-  const divisionOptions = useMemo(
-    () =>
-      [...new Set(profiles.map((p) => p.division).filter(Boolean))]
-        .sort()
-        .map((v) => ({ value: v, label: v })),
-    [profiles],
-  );
+  // Pagination state
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const currentPage = parseInt(f.get("page") || "1", 10);
+  const limit = 20;
 
-  // Filtered listing rows
-  const filtered = useMemo(() => {
-    const search = f.get("search")?.toLowerCase();
-    const status = f.get("jpStatus");
-    const division = f.get("division");
-    return profiles.filter((p) => {
-      if (search && !p.job_title.toLowerCase().includes(search)) return false;
-      if (status && p.status !== status) return false;
-      if (division && p.division !== division) return false;
-      return true;
-    });
-  }, [profiles, f]);
+  // Debounced search for server-side query
+  const [debouncedSearch] = useDebouncedValue(f.get("search") || "", 300);
+
+  // Division options fetched from server
+  const [divisionOptions, setDivisionOptions] = useState<{ value: string; label: string }[]>([]);
 
   /* Reference data for competency picker in create modal */
   const [allCompetencies, setAllCompetencies] = useState<JpCompetency[]>([]);
@@ -136,12 +128,25 @@ export default function JobProfiles() {
     },
   });
 
+  // Extract filter values for stable dependencies
+  const statusFilter = f.get("jpStatus") || "";
+  const divisionFilter = f.get("division") || "";
+
   /* ─── Fetchers ─── */
   const fetchProfiles = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get("/job-profiles");
-      setProfiles(res.data);
+      const params = new URLSearchParams();
+      params.set("page", String(currentPage));
+      params.set("limit", String(limit));
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (statusFilter) params.set("status", statusFilter);
+      if (divisionFilter) params.set("division", divisionFilter);
+
+      const res = await api.get(`/job-profiles?${params.toString()}`);
+      setProfiles(res.data.data);
+      setTotal(res.data.total);
+      setTotalPages(res.data.totalPages);
     } catch {
       notifications.show({
         title: "Error",
@@ -150,6 +155,15 @@ export default function JobProfiles() {
       });
     } finally {
       setLoading(false);
+    }
+  }, [currentPage, debouncedSearch, statusFilter, divisionFilter]);
+
+  const fetchDivisions = useCallback(async () => {
+    try {
+      const res = await api.get("/job-profiles/divisions");
+      setDivisionOptions(res.data.map((d: string) => ({ value: d, label: d })));
+    } catch {
+      /* silent */
     }
   }, []);
 
@@ -171,11 +185,33 @@ export default function JobProfiles() {
     }
   }, []);
 
+  // Fetch profiles when filters or pagination change
   useEffect(() => {
     fetchProfiles();
+  }, [fetchProfiles]);
+
+  // Fetch reference data once on mount
+  useEffect(() => {
+    fetchDivisions();
     fetchCompetencies();
     fetchReviewerCandidates();
-  }, [fetchProfiles, fetchCompetencies, fetchReviewerCandidates]);
+  }, [fetchDivisions, fetchCompetencies, fetchReviewerCandidates]);
+
+  // Reset to page 1 when search or filters change
+  const prevSearch = useRef(debouncedSearch);
+  const prevStatus = useRef(statusFilter);
+  const prevDivision = useRef(divisionFilter);
+  useEffect(() => {
+    const searchChanged = prevSearch.current !== debouncedSearch;
+    const statusChanged = prevStatus.current !== statusFilter;
+    const divisionChanged = prevDivision.current !== divisionFilter;
+    if ((searchChanged || statusChanged || divisionChanged) && currentPage !== 1) {
+      f.set("page", "1");
+    }
+    prevSearch.current = debouncedSearch;
+    prevStatus.current = statusFilter;
+    prevDivision.current = divisionFilter;
+  }, [debouncedSearch, statusFilter, divisionFilter, currentPage, f]);
 
   /* ─── Handlers ─── */
   const openCreate = () => {
@@ -378,7 +414,7 @@ export default function JobProfiles() {
             w={160}
           />
           <Badge variant="light" color="gray" size="lg">
-            {filtered.length} / {profiles.length}
+            {profiles.length} / {total}
           </Badge>
         </Group>
       </Paper>
@@ -393,7 +429,7 @@ export default function JobProfiles() {
           <Center p="xl">
             <Loader />
           </Center>
-        ) : filtered.length === 0 ? (
+        ) : profiles.length === 0 ? (
           <Box p="xl" ta="center">
             <Stack align="center" gap="xs">
               <IconBriefcase
@@ -427,7 +463,7 @@ export default function JobProfiles() {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {filtered.map((p) => (
+              {profiles.map((p) => (
                 <Table.Tr key={p.job_profile_id}>
                   <Table.Td>
                     <Text
@@ -480,6 +516,21 @@ export default function JobProfiles() {
               ))}
             </Table.Tbody>
           </Table>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Group justify="center" mt="md">
+            <Pagination
+              total={totalPages}
+              value={currentPage}
+              onChange={(page) => f.set("page", String(page))}
+              size="sm"
+            />
+            <Text size="xs" c="dimmed">
+              Page {currentPage} of {totalPages} ({total} total)
+            </Text>
+          </Group>
         )}
       </Paper>
 
