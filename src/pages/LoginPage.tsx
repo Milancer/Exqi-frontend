@@ -11,6 +11,7 @@ import {
   Box,
   ThemeIcon,
   Transition,
+  Anchor,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -144,6 +145,16 @@ export default function LoginPage() {
                   required
                   {...form.getInputProps("password")}
                 />
+                <Anchor
+                  component="button"
+                  type="button"
+                  c="dimmed"
+                  size="sm"
+                  onClick={() => navigate("/forgot-password")}
+                  style={{ alignSelf: "flex-end", marginTop: -8 }}
+                >
+                  Forgot password?
+                </Anchor>
                 <Button
                   type="submit"
                   fullWidth
