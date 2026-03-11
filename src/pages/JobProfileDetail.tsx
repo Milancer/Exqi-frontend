@@ -169,8 +169,9 @@ export default function JobProfileDetail() {
 
   const fetchAllProfiles = useCallback(async () => {
     try {
-      const res = await api.get("/job-profiles");
-      setAllProfiles(res.data);
+      const res = await api.get("/job-profiles?limit=1000");
+      // Backend now returns paginated data { data: [], total, ... }
+      setAllProfiles(res.data.data || []);
     } catch {
       /* silent */
     }
