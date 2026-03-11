@@ -80,8 +80,8 @@ export default function JobProfileDetail() {
   // Reference data (all JP competencies for the competency picker)
   const [allCompetencies, setAllCompetencies] = useState<JpCompetency[]>([]);
 
-  // All profiles for the "Reports To" dropdown
-  const [allProfiles, setAllProfiles] = useState<JobProfile[]>([]);
+  // Lightweight profile options for the "Reports To" dropdown
+  const [profileOptions, setProfileOptions] = useState<{ value: number; label: string }[]>([]);
 
   // Skills
   const [addSkillName, setAddSkillName] = useState("");
@@ -167,11 +167,10 @@ export default function JobProfileDetail() {
     }
   }, []);
 
-  const fetchAllProfiles = useCallback(async () => {
+  const fetchProfileOptions = useCallback(async () => {
     try {
-      const res = await api.get("/job-profiles?limit=1000");
-      // Backend now returns paginated data { data: [], total, ... }
-      setAllProfiles(res.data.data || []);
+      const res = await api.get("/job-profiles/dropdown-options");
+      setProfileOptions(res.data || []);
     } catch {
       /* silent */
     }
@@ -189,12 +188,12 @@ export default function JobProfileDetail() {
   useEffect(() => {
     fetchProfile();
     fetchCompetencies();
-    fetchAllProfiles();
+    fetchProfileOptions();
     fetchReviewerCandidates();
   }, [
     fetchProfile,
     fetchCompetencies,
-    fetchAllProfiles,
+    fetchProfileOptions,
     fetchReviewerCandidates,
   ]);
 
@@ -619,9 +618,9 @@ export default function JobProfileDetail() {
                 <Select
                   label="Reports To"
                   placeholder="Select manager profile"
-                  data={allProfiles.map((p) => ({
-                    value: String(p.job_profile_id),
-                    label: p.job_title,
+                  data={profileOptions.map((p) => ({
+                    value: String(p.value),
+                    label: p.label,
                   }))}
                   value={
                     descForm.values.reports_to
