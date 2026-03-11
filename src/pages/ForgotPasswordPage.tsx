@@ -40,7 +40,6 @@ export default function ForgotPasswordPage() {
         title: "Check your email",
         message: "If an account exists, we've sent a password reset link",
         color: "green",
-        icon: <IconCheck size={16} />,
       });
     } catch {
       // Don't reveal if email exists - still show success

@@ -78,14 +78,13 @@ export default function ResetPasswordPage() {
     try {
       await api.post("/auth/reset-password", {
         token,
-        newPassword: values.password,
+        password: values.password,
       });
       setPageState("success");
       notifications.show({
         title: "Password set successfully",
         message: "You can now sign in with your new password",
         color: "green",
-        icon: <IconCheck size={16} />,
       });
     } catch (error: any) {
       notifications.show({
