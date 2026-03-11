@@ -76,10 +76,6 @@ export default function Users() {
       name: (v) => (v.trim() ? null : "Name is required"),
       surname: (v) => (v.trim() ? null : "Surname is required"),
       email: (v) => (/^\S+@\S+$/.test(v) ? null : "Invalid email"),
-      password: (v, _values) => {
-        if (editingId) return null; // password optional on edit
-        return v.length >= 6 ? null : "Min 6 characters";
-      },
       clientId: (v) => (v ? null : "Client is required"),
     },
   });
@@ -112,7 +108,9 @@ export default function Users() {
         ...values,
         clientId: Number(values.clientId),
       };
-      if (editingId && !payload.password) {
+      // Remove password - for new users, backend sends welcome email
+      // For edits, only include if provided
+      if (!payload.password) {
         delete payload.password;
       }
       if (editingId) {
@@ -126,7 +124,7 @@ export default function Users() {
         await createMutation.mutateAsync(payload);
         notifications.show({
           title: "Created",
-          message: "User created",
+          message: "User created. Welcome email sent with password setup link.",
           color: "green",
         });
       }
@@ -373,12 +371,13 @@ export default function Users() {
               required
               {...form.getInputProps("email")}
             />
-            <PasswordInput
-              label={editingId ? "Password (leave blank to keep)" : "Password"}
-              placeholder="Min 6 characters"
-              required={!editingId}
-              {...form.getInputProps("password")}
-            />
+            {editingId && (
+              <PasswordInput
+                label="Password (leave blank to keep)"
+                placeholder="Min 6 characters"
+                {...form.getInputProps("password")}
+              />
+            )}
             <Group grow>
               <Select
                 label="Role"
