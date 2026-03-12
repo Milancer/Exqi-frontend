@@ -49,12 +49,10 @@ import type {
 } from "../services/job-profiles/interfaces";
 
 const statusColors: Record<string, string> = {
-  Active: "green",
-  Draft: "blue",
-  Archived: "gray",
-  "Awaiting Review": "yellow",
+  "In Progress": "blue",
+  "Awaiting Approval": "yellow",
   Approved: "teal",
-  Rejected: "red",
+  Deleted: "red",
 };
 
 export default function JobProfiles() {
@@ -127,7 +125,7 @@ export default function JobProfiles() {
       reports_to: "" as string | number,
       department_id: "" as string | number,
       job_grade_id: "" as string | number,
-      status: "Draft",
+      status: "In Progress",
     },
     validate: {
       job_title: (v) => (v.trim() ? null : "Job title is required"),
@@ -415,18 +413,15 @@ export default function JobProfiles() {
           <Select
             placeholder="Status"
             data={[
-              { value: "Draft", label: "Draft" },
-              { value: "Active", label: "Active" },
-              { value: "Awaiting Review", label: "Awaiting Review" },
+              { value: "In Progress", label: "In Progress" },
+              { value: "Awaiting Approval", label: "Awaiting Approval" },
               { value: "Approved", label: "Approved" },
-              { value: "Rejected", label: "Rejected" },
-              { value: "Archived", label: "Archived" },
             ]}
             value={f.get("jpStatus") || null}
             onChange={(v) => f.set("jpStatus", v)}
             clearable
             size="sm"
-            w={130}
+            w={150}
           />
           <Select
             placeholder="Division"
@@ -706,9 +701,9 @@ export default function JobProfiles() {
                   <Select
                     label="Status"
                     data={[
-                      { value: "Draft", label: "Draft" },
-                      { value: "Active", label: "Active" },
-                      { value: "Archived", label: "Archived" },
+                      { value: "In Progress", label: "In Progress" },
+                      { value: "Awaiting Approval", label: "Awaiting Approval" },
+                      { value: "Approved", label: "Approved" },
                     ]}
                     {...descForm.getInputProps("status")}
                   />
@@ -1239,7 +1234,7 @@ export default function JobProfiles() {
               {createReviewerId && (
                 <Text size="xs" c="dimmed">
                   The selected reviewer will be notified after the profile is
-                  created and its status will be set to "Awaiting Review".
+                  created and its status will be set to "Awaiting Approval".
                 </Text>
               )}
             </Stack>

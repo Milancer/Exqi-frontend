@@ -70,6 +70,22 @@ export interface JPReviewer {
   role: string;
 }
 
+export interface JPApprover {
+  job_profile_approver_id: number;
+  job_profile_id: number;
+  approver_id: number;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  approved_at: string | null;
+  created_at: string;
+  approver: {
+    id: number;
+    name: string;
+    surname: string;
+    email: string;
+    signature: string | null;
+  };
+}
+
 export interface JobProfile {
   job_profile_id: number;
   job_title: string;
@@ -90,4 +106,5 @@ export interface JobProfile {
   skills?: JPSkill[];
   deliverables?: JPDeliverable[];
   requirements?: JPRequirement;
+  approvers?: JPApprover[];
 }

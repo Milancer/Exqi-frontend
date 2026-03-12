@@ -11,6 +11,7 @@ import {
   Button,
   Divider,
   Box,
+  Image,
 } from "@mantine/core";
 import { IconDownload, IconX } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
@@ -19,6 +20,7 @@ import {
   Page,
   Text as PDFText,
   View,
+  Image as PDFImage,
   StyleSheet,
   pdf,
 } from "@react-pdf/renderer";
@@ -104,6 +106,17 @@ const pdfStyles = StyleSheet.create({
     padding: 8,
     backgroundColor: "#f8f9fa",
   },
+  signatureImage: {
+    width: 120,
+    height: 40,
+    objectFit: "contain" as const,
+  },
+  signatureCell: {
+    padding: 6,
+    fontSize: 9,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   footer: {
     position: "absolute",
     bottom: 30,
@@ -116,145 +129,257 @@ const pdfStyles = StyleSheet.create({
 });
 
 // PDF Document Component
-const JobProfilePDF = ({ profile }: { profile: JobProfile }) => (
-  <Document>
-    <Page size="A4" style={pdfStyles.page}>
-      {/* Header */}
-      <View style={pdfStyles.header}>
-        <PDFText style={pdfStyles.title}>{profile.job_title}</PDFText>
-        <PDFText style={pdfStyles.subtitle}>
-          {profile.division || "No Division"} | {profile.job_family || "No Family"} | Status: {profile.status}
-        </PDFText>
-      </View>
+const JobProfilePDF = ({ profile }: { profile: JobProfile }) => {
+  const approvedApprovers = (profile.approvers || []).filter(
+    (a) => a.status === "Approved"
+  );
 
-      {/* Job Purpose */}
-      <View style={pdfStyles.section}>
-        <PDFText style={pdfStyles.sectionHeader}>JOB PURPOSE</PDFText>
-        <PDFText style={pdfStyles.purposeText}>{profile.job_purpose}</PDFText>
-      </View>
-
-      {/* Job Details */}
-      <View style={pdfStyles.section}>
-        <PDFText style={pdfStyles.sectionHeader}>JOB DETAILS</PDFText>
-        <View style={pdfStyles.fieldRow}>
-          <PDFText style={pdfStyles.fieldLabel}>Location:</PDFText>
-          <PDFText style={pdfStyles.fieldValue}>{profile.job_location || "N/A"}</PDFText>
+  return (
+    <Document>
+      <Page size="A4" style={pdfStyles.page}>
+        {/* Header */}
+        <View style={pdfStyles.header}>
+          <PDFText style={pdfStyles.title}>{profile.job_title}</PDFText>
+          <PDFText style={pdfStyles.subtitle}>
+            {profile.division || "No Division"} |{" "}
+            {profile.job_family || "No Family"} | Status: {profile.status}
+          </PDFText>
         </View>
-        <View style={pdfStyles.fieldRow}>
-          <PDFText style={pdfStyles.fieldLabel}>Level of Work:</PDFText>
-          <PDFText style={pdfStyles.fieldValue}>{profile.level_of_work || "N/A"}</PDFText>
-        </View>
-      </View>
 
-      {/* Competencies */}
-      {profile.competencies && profile.competencies.length > 0 && (
+        {/* Job Purpose */}
         <View style={pdfStyles.section}>
-          <PDFText style={pdfStyles.sectionHeader}>COMPETENCIES</PDFText>
-          <View style={pdfStyles.table}>
-            <View style={pdfStyles.tableHeader}>
-              <PDFText style={[pdfStyles.tableCell, { width: "50%" }]}>Competency</PDFText>
-              <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>Level</PDFText>
-              <PDFText style={[pdfStyles.tableCell, { width: "15%" }]}>Critical</PDFText>
-              <PDFText style={[pdfStyles.tableCell, { width: "15%" }]}>Differentiating</PDFText>
-            </View>
-            {profile.competencies.map((comp, idx) => (
-              <View key={idx} style={pdfStyles.tableRow}>
+          <PDFText style={pdfStyles.sectionHeader}>JOB PURPOSE</PDFText>
+          <PDFText style={pdfStyles.purposeText}>
+            {profile.job_purpose}
+          </PDFText>
+        </View>
+
+        {/* Job Details */}
+        <View style={pdfStyles.section}>
+          <PDFText style={pdfStyles.sectionHeader}>JOB DETAILS</PDFText>
+          <View style={pdfStyles.fieldRow}>
+            <PDFText style={pdfStyles.fieldLabel}>Location:</PDFText>
+            <PDFText style={pdfStyles.fieldValue}>
+              {profile.job_location || "N/A"}
+            </PDFText>
+          </View>
+          <View style={pdfStyles.fieldRow}>
+            <PDFText style={pdfStyles.fieldLabel}>Level of Work:</PDFText>
+            <PDFText style={pdfStyles.fieldValue}>
+              {profile.level_of_work || "N/A"}
+            </PDFText>
+          </View>
+        </View>
+
+        {/* Competencies */}
+        {profile.competencies && profile.competencies.length > 0 && (
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionHeader}>COMPETENCIES</PDFText>
+            <View style={pdfStyles.table}>
+              <View style={pdfStyles.tableHeader}>
                 <PDFText style={[pdfStyles.tableCell, { width: "50%" }]}>
-                  {comp.jpCompetency?.competency || "N/A"}
+                  Competency
                 </PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "20%", textAlign: "center" }]}>
-                  {comp.level}
+                <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>
+                  Level
                 </PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "15%", textAlign: "center" }]}>
-                  {comp.is_critical ? "Yes" : "No"}
+                <PDFText style={[pdfStyles.tableCell, { width: "15%" }]}>
+                  Critical
                 </PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "15%", textAlign: "center" }]}>
-                  {comp.is_differentiating ? "Yes" : "No"}
+                <PDFText style={[pdfStyles.tableCell, { width: "15%" }]}>
+                  Differentiating
+                </PDFText>
+              </View>
+              {profile.competencies.map((comp, idx) => (
+                <View key={idx} style={pdfStyles.tableRow}>
+                  <PDFText style={[pdfStyles.tableCell, { width: "50%" }]}>
+                    {comp.jpCompetency?.competency || "N/A"}
+                  </PDFText>
+                  <PDFText
+                    style={[
+                      pdfStyles.tableCell,
+                      { width: "20%", textAlign: "center" },
+                    ]}
+                  >
+                    {comp.level}
+                  </PDFText>
+                  <PDFText
+                    style={[
+                      pdfStyles.tableCell,
+                      { width: "15%", textAlign: "center" },
+                    ]}
+                  >
+                    {comp.is_critical ? "Yes" : "No"}
+                  </PDFText>
+                  <PDFText
+                    style={[
+                      pdfStyles.tableCell,
+                      { width: "15%", textAlign: "center" },
+                    ]}
+                  >
+                    {comp.is_differentiating ? "Yes" : "No"}
+                  </PDFText>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Skills */}
+        {profile.skills && profile.skills.length > 0 && (
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionHeader}>SKILLS</PDFText>
+            <View style={pdfStyles.table}>
+              <View style={pdfStyles.tableHeader}>
+                <PDFText style={[pdfStyles.tableCell, { width: "60%" }]}>
+                  Skill
+                </PDFText>
+                <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>
+                  Level
+                </PDFText>
+                <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>
+                  Critical
+                </PDFText>
+              </View>
+              {profile.skills.map((skill, idx) => (
+                <View key={idx} style={pdfStyles.tableRow}>
+                  <PDFText style={[pdfStyles.tableCell, { width: "60%" }]}>
+                    {skill.skill_name || skill.skill?.skill || "-"}
+                  </PDFText>
+                  <PDFText
+                    style={[
+                      pdfStyles.tableCell,
+                      { width: "20%", textAlign: "center" },
+                    ]}
+                  >
+                    {skill.level}
+                  </PDFText>
+                  <PDFText
+                    style={[
+                      pdfStyles.tableCell,
+                      { width: "20%", textAlign: "center" },
+                    ]}
+                  >
+                    {skill.is_critical ? "Yes" : "No"}
+                  </PDFText>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Deliverables */}
+        {profile.deliverables && profile.deliverables.length > 0 && (
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionHeader}>KEY DELIVERABLES</PDFText>
+            {profile.deliverables.map((del, idx) => (
+              <View key={idx} style={pdfStyles.fieldRow}>
+                <PDFText style={pdfStyles.fieldLabel}>{idx + 1}.</PDFText>
+                <PDFText style={pdfStyles.fieldValue}>
+                  {del.deliverable}
                 </PDFText>
               </View>
             ))}
           </View>
-        </View>
-      )}
+        )}
 
-      {/* Skills */}
-      {profile.skills && profile.skills.length > 0 && (
-        <View style={pdfStyles.section}>
-          <PDFText style={pdfStyles.sectionHeader}>SKILLS</PDFText>
-          <View style={pdfStyles.table}>
-            <View style={pdfStyles.tableHeader}>
-              <PDFText style={[pdfStyles.tableCell, { width: "60%" }]}>Skill</PDFText>
-              <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>Level</PDFText>
-              <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>Critical</PDFText>
-            </View>
-            {profile.skills.map((skill, idx) => (
-              <View key={idx} style={pdfStyles.tableRow}>
-                <PDFText style={[pdfStyles.tableCell, { width: "60%" }]}>{skill.skill_name || skill.skill?.skill || '-'}</PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "20%", textAlign: "center" }]}>
-                  {skill.level}
-                </PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "20%", textAlign: "center" }]}>
-                  {skill.is_critical ? "Yes" : "No"}
+        {/* Requirements */}
+        {profile.requirements && (
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionHeader}>REQUIREMENTS</PDFText>
+            {profile.requirements.education && (
+              <View style={pdfStyles.fieldRow}>
+                <PDFText style={pdfStyles.fieldLabel}>Education:</PDFText>
+                <PDFText style={pdfStyles.fieldValue}>
+                  {profile.requirements.education}
                 </PDFText>
               </View>
-            ))}
+            )}
+            {profile.requirements.experience && (
+              <View style={pdfStyles.fieldRow}>
+                <PDFText style={pdfStyles.fieldLabel}>Experience:</PDFText>
+                <PDFText style={pdfStyles.fieldValue}>
+                  {profile.requirements.experience}
+                </PDFText>
+              </View>
+            )}
+            {profile.requirements.certifications && (
+              <View style={pdfStyles.fieldRow}>
+                <PDFText style={pdfStyles.fieldLabel}>Certifications:</PDFText>
+                <PDFText style={pdfStyles.fieldValue}>
+                  {profile.requirements.certifications}
+                </PDFText>
+              </View>
+            )}
+            {profile.requirements.other_requirements && (
+              <View style={pdfStyles.fieldRow}>
+                <PDFText style={pdfStyles.fieldLabel}>Other:</PDFText>
+                <PDFText style={pdfStyles.fieldValue}>
+                  {profile.requirements.other_requirements}
+                </PDFText>
+              </View>
+            )}
           </View>
-        </View>
-      )}
+        )}
 
-      {/* Deliverables */}
-      {profile.deliverables && profile.deliverables.length > 0 && (
-        <View style={pdfStyles.section}>
-          <PDFText style={pdfStyles.sectionHeader}>KEY DELIVERABLES</PDFText>
-          {profile.deliverables.map((del, idx) => (
-            <View key={idx} style={pdfStyles.fieldRow}>
-              <PDFText style={pdfStyles.fieldLabel}>{idx + 1}.</PDFText>
-              <PDFText style={pdfStyles.fieldValue}>{del.deliverable}</PDFText>
+        {/* Signatures / Approvals Table */}
+        {approvedApprovers.length > 0 && (
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionHeader}>APPROVALS</PDFText>
+            <View style={pdfStyles.table}>
+              <View style={pdfStyles.tableHeader}>
+                <PDFText style={[pdfStyles.tableCell, { width: "30%" }]}>
+                  Name
+                </PDFText>
+                <PDFText style={[pdfStyles.tableCell, { width: "40%" }]}>
+                  Signature
+                </PDFText>
+                <PDFText style={[pdfStyles.tableCell, { width: "30%" }]}>
+                  Date
+                </PDFText>
+              </View>
+              {approvedApprovers.map((app, idx) => (
+                <View key={idx} style={pdfStyles.tableRow}>
+                  <PDFText style={[pdfStyles.tableCell, { width: "30%" }]}>
+                    {app.approver.name} {app.approver.surname}
+                  </PDFText>
+                  <View style={[pdfStyles.signatureCell, { width: "40%" }]}>
+                    {app.approver.signature ? (
+                      <PDFImage
+                        src={app.approver.signature}
+                        style={pdfStyles.signatureImage}
+                      />
+                    ) : (
+                      <PDFText style={{ fontSize: 8, color: "#999" }}>
+                        No signature on file
+                      </PDFText>
+                    )}
+                  </View>
+                  <PDFText style={[pdfStyles.tableCell, { width: "30%" }]}>
+                    {app.approved_at
+                      ? new Date(app.approved_at).toLocaleDateString()
+                      : "N/A"}
+                  </PDFText>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
-      )}
+          </View>
+        )}
 
-      {/* Requirements */}
-      {profile.requirements && (
-        <View style={pdfStyles.section}>
-          <PDFText style={pdfStyles.sectionHeader}>REQUIREMENTS</PDFText>
-          {profile.requirements.education && (
-            <View style={pdfStyles.fieldRow}>
-              <PDFText style={pdfStyles.fieldLabel}>Education:</PDFText>
-              <PDFText style={pdfStyles.fieldValue}>{profile.requirements.education}</PDFText>
-            </View>
-          )}
-          {profile.requirements.experience && (
-            <View style={pdfStyles.fieldRow}>
-              <PDFText style={pdfStyles.fieldLabel}>Experience:</PDFText>
-              <PDFText style={pdfStyles.fieldValue}>{profile.requirements.experience}</PDFText>
-            </View>
-          )}
-          {profile.requirements.certifications && (
-            <View style={pdfStyles.fieldRow}>
-              <PDFText style={pdfStyles.fieldLabel}>Certifications:</PDFText>
-              <PDFText style={pdfStyles.fieldValue}>{profile.requirements.certifications}</PDFText>
-            </View>
-          )}
-          {profile.requirements.other_requirements && (
-            <View style={pdfStyles.fieldRow}>
-              <PDFText style={pdfStyles.fieldLabel}>Other:</PDFText>
-              <PDFText style={pdfStyles.fieldValue}>{profile.requirements.other_requirements}</PDFText>
-            </View>
-          )}
-        </View>
-      )}
+        {/* Footer */}
+        <PDFText style={pdfStyles.footer}>
+          Generated from EXQi - {new Date().toLocaleDateString()}
+        </PDFText>
+      </Page>
+    </Document>
+  );
+};
 
-      {/* Footer */}
-      <PDFText style={pdfStyles.footer}>
-        Generated from EXQi - {new Date().toLocaleDateString()}
-      </PDFText>
-    </Page>
-  </Document>
-);
-
-export default function JobProfilePreview({ profile, opened, onClose }: JobProfilePreviewProps) {
+export default function JobProfilePreview({
+  profile,
+  opened,
+  onClose,
+}: JobProfilePreviewProps) {
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
@@ -289,6 +414,10 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
 
   if (!profile) return null;
 
+  const approvedApprovers = (profile.approvers || []).filter(
+    (a) => a.status === "Approved"
+  );
+
   return (
     <Modal
       opened={opened}
@@ -312,20 +441,39 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
         >
           Download PDF
         </Button>
-        <Button variant="subtle" color="gray" onClick={onClose} leftSection={<IconX size={16} />}>
+        <Button
+          variant="subtle"
+          color="gray"
+          onClick={onClose}
+          leftSection={<IconX size={16} />}
+        >
           Close
         </Button>
       </Group>
 
       {/* Preview Content */}
-      <Paper withBorder p="lg" radius="md" style={{ backgroundColor: "#fafafa" }}>
+      <Paper
+        withBorder
+        p="lg"
+        radius="md"
+        style={{ backgroundColor: "#fafafa" }}
+      >
         {/* Header */}
         <Box mb="lg" pb="md" style={{ borderBottom: "2px solid #1a365d" }}>
-          <Title order={2} c="dark">{profile.job_title}</Title>
+          <Title order={2} c="dark">
+            {profile.job_title}
+          </Title>
           <Group gap="xs" mt="xs">
-            <Badge variant="light" color="blue">{profile.division || "No Division"}</Badge>
-            <Badge variant="light" color="gray">{profile.job_family || "No Family"}</Badge>
-            <Badge variant="light" color={profile.status === "Active" ? "green" : "orange"}>
+            <Badge variant="light" color="blue">
+              {profile.division || "No Division"}
+            </Badge>
+            <Badge variant="light" color="gray">
+              {profile.job_family || "No Family"}
+            </Badge>
+            <Badge
+              variant="light"
+              color={profile.status === "Active" ? "green" : "orange"}
+            >
               {profile.status}
             </Badge>
           </Group>
@@ -334,7 +482,9 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
         {/* Job Purpose */}
         <Stack gap="md">
           <Box>
-            <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>Job Purpose</Text>
+            <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>
+              Job Purpose
+            </Text>
             <Paper p="sm" withBorder style={{ backgroundColor: "white" }}>
               <Text size="sm">{profile.job_purpose}</Text>
             </Paper>
@@ -344,15 +494,25 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
 
           {/* Job Details */}
           <Box>
-            <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>Job Details</Text>
+            <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>
+              Job Details
+            </Text>
             <Group grow>
               <Box>
-                <Text size="xs" c="dimmed">Location</Text>
-                <Text size="sm" fw={500}>{profile.job_location || "N/A"}</Text>
+                <Text size="xs" c="dimmed">
+                  Location
+                </Text>
+                <Text size="sm" fw={500}>
+                  {profile.job_location || "N/A"}
+                </Text>
               </Box>
               <Box>
-                <Text size="xs" c="dimmed">Level of Work</Text>
-                <Text size="sm" fw={500}>{profile.level_of_work || "N/A"}</Text>
+                <Text size="xs" c="dimmed">
+                  Level of Work
+                </Text>
+                <Text size="sm" fw={500}>
+                  {profile.level_of_work || "N/A"}
+                </Text>
               </Box>
             </Group>
           </Box>
@@ -365,7 +525,12 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
                 <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>
                   Competencies ({profile.competencies.length})
                 </Text>
-                <Table striped highlightOnHover withTableBorder withColumnBorders>
+                <Table
+                  striped
+                  highlightOnHover
+                  withTableBorder
+                  withColumnBorders
+                >
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Competency</Table.Th>
@@ -378,28 +543,43 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
                     {profile.competencies.map((comp) => (
                       <Table.Tr key={comp.job_profile_competency_id}>
                         <Table.Td>
-                          <Text size="sm">{comp.jpCompetency?.competency || "N/A"}</Text>
+                          <Text size="sm">
+                            {comp.jpCompetency?.competency || "N/A"}
+                          </Text>
                           {comp.jpCompetency?.competencyType && (
                             <Text size="xs" c="dimmed">
-                              {comp.jpCompetency.competencyType.competency_type}
+                              {
+                                comp.jpCompetency.competencyType
+                                  .competency_type
+                              }
                             </Text>
                           )}
                         </Table.Td>
                         <Table.Td ta="center">
-                          <Badge size="sm" variant="light" color="blue">L{comp.level}</Badge>
+                          <Badge size="sm" variant="light" color="blue">
+                            L{comp.level}
+                          </Badge>
                         </Table.Td>
                         <Table.Td ta="center">
                           {comp.is_critical ? (
-                            <Badge size="sm" color="red">Yes</Badge>
+                            <Badge size="sm" color="red">
+                              Yes
+                            </Badge>
                           ) : (
-                            <Text size="xs" c="dimmed">No</Text>
+                            <Text size="xs" c="dimmed">
+                              No
+                            </Text>
                           )}
                         </Table.Td>
                         <Table.Td ta="center">
                           {comp.is_differentiating ? (
-                            <Badge size="sm" color="orange">Yes</Badge>
+                            <Badge size="sm" color="orange">
+                              Yes
+                            </Badge>
                           ) : (
-                            <Text size="xs" c="dimmed">No</Text>
+                            <Text size="xs" c="dimmed">
+                              No
+                            </Text>
                           )}
                         </Table.Td>
                       </Table.Tr>
@@ -418,7 +598,12 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
                 <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>
                   Skills ({profile.skills.length})
                 </Text>
-                <Table striped highlightOnHover withTableBorder withColumnBorders>
+                <Table
+                  striped
+                  highlightOnHover
+                  withTableBorder
+                  withColumnBorders
+                >
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Skill</Table.Th>
@@ -429,15 +614,23 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
                   <Table.Tbody>
                     {profile.skills.map((skill) => (
                       <Table.Tr key={skill.job_profile_skill_id}>
-                        <Table.Td>{skill.skill_name || skill.skill?.skill || '-'}</Table.Td>
+                        <Table.Td>
+                          {skill.skill_name || skill.skill?.skill || "-"}
+                        </Table.Td>
                         <Table.Td ta="center">
-                          <Badge size="sm" variant="light" color="teal">L{skill.level}</Badge>
+                          <Badge size="sm" variant="light" color="teal">
+                            L{skill.level}
+                          </Badge>
                         </Table.Td>
                         <Table.Td ta="center">
                           {skill.is_critical ? (
-                            <Badge size="sm" color="red">Yes</Badge>
+                            <Badge size="sm" color="red">
+                              Yes
+                            </Badge>
                           ) : (
-                            <Text size="xs" c="dimmed">No</Text>
+                            <Text size="xs" c="dimmed">
+                              No
+                            </Text>
                           )}
                         </Table.Td>
                       </Table.Tr>
@@ -460,9 +653,15 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
                   {profile.deliverables
                     .sort((a, b) => a.sequence - b.sequence)
                     .map((del, idx) => (
-                      <Paper key={del.job_profile_deliverable_id} p="xs" withBorder>
+                      <Paper
+                        key={del.job_profile_deliverable_id}
+                        p="xs"
+                        withBorder
+                      >
                         <Group gap="xs" wrap="nowrap">
-                          <Badge size="sm" variant="light" color="gray">{idx + 1}</Badge>
+                          <Badge size="sm" variant="light" color="gray">
+                            {idx + 1}
+                          </Badge>
                           <Text size="sm">{del.deliverable}</Text>
                         </Group>
                       </Paper>
@@ -477,33 +676,112 @@ export default function JobProfilePreview({ profile, opened, onClose }: JobProfi
             <>
               <Divider />
               <Box>
-                <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>Requirements</Text>
+                <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>
+                  Requirements
+                </Text>
                 <Stack gap="xs">
                   {profile.requirements.education && (
                     <Box>
-                      <Text size="xs" c="dimmed" fw={500}>Education</Text>
-                      <Text size="sm">{profile.requirements.education}</Text>
+                      <Text size="xs" c="dimmed" fw={500}>
+                        Education
+                      </Text>
+                      <Text size="sm">
+                        {profile.requirements.education}
+                      </Text>
                     </Box>
                   )}
                   {profile.requirements.experience && (
                     <Box>
-                      <Text size="xs" c="dimmed" fw={500}>Experience</Text>
-                      <Text size="sm">{profile.requirements.experience}</Text>
+                      <Text size="xs" c="dimmed" fw={500}>
+                        Experience
+                      </Text>
+                      <Text size="sm">
+                        {profile.requirements.experience}
+                      </Text>
                     </Box>
                   )}
                   {profile.requirements.certifications && (
                     <Box>
-                      <Text size="xs" c="dimmed" fw={500}>Certifications</Text>
-                      <Text size="sm">{profile.requirements.certifications}</Text>
+                      <Text size="xs" c="dimmed" fw={500}>
+                        Certifications
+                      </Text>
+                      <Text size="sm">
+                        {profile.requirements.certifications}
+                      </Text>
                     </Box>
                   )}
                   {profile.requirements.other_requirements && (
                     <Box>
-                      <Text size="xs" c="dimmed" fw={500}>Other Requirements</Text>
-                      <Text size="sm">{profile.requirements.other_requirements}</Text>
+                      <Text size="xs" c="dimmed" fw={500}>
+                        Other Requirements
+                      </Text>
+                      <Text size="sm">
+                        {profile.requirements.other_requirements}
+                      </Text>
                     </Box>
                   )}
                 </Stack>
+              </Box>
+            </>
+          )}
+
+          {/* Signatures / Approvals Table */}
+          {approvedApprovers.length > 0 && (
+            <>
+              <Divider />
+              <Box>
+                <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>
+                  Approvals
+                </Text>
+                <Table
+                  striped
+                  highlightOnHover
+                  withTableBorder
+                  withColumnBorders
+                >
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Name</Table.Th>
+                      <Table.Th w={180}>Signature</Table.Th>
+                      <Table.Th w={120}>Date</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {approvedApprovers.map((app) => (
+                      <Table.Tr key={app.job_profile_approver_id}>
+                        <Table.Td>
+                          <Text size="sm" fw={500}>
+                            {app.approver.name} {app.approver.surname}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td ta="center">
+                          {app.approver.signature ? (
+                            <Image
+                              src={app.approver.signature}
+                              alt={`${app.approver.name} signature`}
+                              h={40}
+                              w={120}
+                              fit="contain"
+                            />
+                          ) : (
+                            <Text size="xs" c="dimmed" fs="italic">
+                              No signature on file
+                            </Text>
+                          )}
+                        </Table.Td>
+                        <Table.Td>
+                          <Text size="sm">
+                            {app.approved_at
+                              ? new Date(
+                                  app.approved_at
+                                ).toLocaleDateString()
+                              : "N/A"}
+                          </Text>
+                        </Table.Td>
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
               </Box>
             </>
           )}
