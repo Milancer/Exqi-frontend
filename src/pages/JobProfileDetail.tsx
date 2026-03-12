@@ -51,7 +51,6 @@ import type {
   JpCompetency,
   JPCompetencyLink,
   JPReviewer,
-  JPApprover,
 } from "../services/job-profiles/interfaces";
 
 const statusColors: Record<string, string> = {
