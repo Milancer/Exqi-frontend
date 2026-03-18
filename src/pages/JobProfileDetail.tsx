@@ -537,6 +537,12 @@ export default function JobProfileDetail() {
               Description
             </Tabs.Tab>
             <Tabs.Tab
+              value="requirements"
+              leftSection={<IconSchool size={14} />}
+            >
+              Requirements
+            </Tabs.Tab>
+            <Tabs.Tab
               value="competencies"
               leftSection={<IconTargetArrow size={14} />}
             >
@@ -559,12 +565,6 @@ export default function JobProfileDetail() {
               <Badge size="xs" variant="light" color="orange" ml={4}>
                 {profile.deliverables?.length || 0}
               </Badge>
-            </Tabs.Tab>
-            <Tabs.Tab
-              value="requirements"
-              leftSection={<IconSchool size={14} />}
-            >
-              Requirements
             </Tabs.Tab>
             <Tabs.Tab
               value="approval"

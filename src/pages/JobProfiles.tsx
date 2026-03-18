@@ -41,6 +41,7 @@ import {
 } from "@tabler/icons-react";
 import JobProfilePreview from "../components/JobProfilePreview";
 import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 import { useUrlFilters } from "../hooks/useUrlFilters";
 import type {
   JobProfile,
@@ -57,6 +58,8 @@ const statusColors: Record<string, string> = {
 
 export default function JobProfiles() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [profiles, setProfiles] = useState<JobProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpened, setModalOpened] = useState(false);
@@ -119,8 +122,6 @@ export default function JobProfiles() {
       job_title: "",
       job_purpose: "",
       division: "",
-      job_family: "",
-      job_location: "",
       level_of_work: "" as string | number,
       reports_to: "" as string | number,
       department_id: "" as string | number,
@@ -475,8 +476,8 @@ export default function JobProfiles() {
               <Table.Tr>
                 <Table.Th>Title</Table.Th>
                 <Table.Th>Division</Table.Th>
-                <Table.Th>Family</Table.Th>
-                <Table.Th>Location</Table.Th>
+                <Table.Th>Department</Table.Th>
+                {isAdmin && <Table.Th>Client</Table.Th>}
                 <Table.Th>Status</Table.Th>
                 <Table.Th w={120}>Actions</Table.Th>
               </Table.Tr>
@@ -497,8 +498,10 @@ export default function JobProfiles() {
                     </Text>
                   </Table.Td>
                   <Table.Td>{p.division || "—"}</Table.Td>
-                  <Table.Td>{p.job_family || "—"}</Table.Td>
-                  <Table.Td>{p.job_location || "—"}</Table.Td>
+                  <Table.Td>{(p as any).department?.department || "—"}</Table.Td>
+                  {isAdmin && (
+                    <Table.Td>{p.client?.name || "—"}</Table.Td>
+                  )}
                   <Table.Td>
                     <Badge
                       variant="light"
@@ -592,6 +595,12 @@ export default function JobProfiles() {
               Description *
             </Tabs.Tab>
             <Tabs.Tab
+              value="requirements"
+              leftSection={<IconSchool size={14} />}
+            >
+              Requirements
+            </Tabs.Tab>
+            <Tabs.Tab
               value="competencies"
               leftSection={<IconTargetArrow size={14} />}
             >
@@ -621,12 +630,6 @@ export default function JobProfiles() {
                   {createDeliverables.length}
                 </Badge>
               )}
-            </Tabs.Tab>
-            <Tabs.Tab
-              value="requirements"
-              leftSection={<IconSchool size={14} />}
-            >
-              Requirements
             </Tabs.Tab>
             <Tabs.Tab
               value="approval"
@@ -660,18 +663,6 @@ export default function JobProfiles() {
                   minRows={3}
                   {...descForm.getInputProps("job_purpose")}
                 />
-                <Group grow>
-                  <TextInput
-                    label="Job Family"
-                    placeholder="e.g., Software Development"
-                    {...descForm.getInputProps("job_family")}
-                  />
-                  <TextInput
-                    label="Location"
-                    placeholder="e.g., Remote"
-                    {...descForm.getInputProps("job_location")}
-                  />
-                </Group>
                 <Group grow>
                   <NumberInput
                     label="Level of Work"

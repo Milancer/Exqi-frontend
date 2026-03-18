@@ -98,6 +98,8 @@ export interface JobProfile {
   job_grade_id: number | null;
   reports_to: number | null;
   status: string;
+  client_id?: number;
+  client?: { id: number; name: string } | null;
   reviewer_id?: number | null;
   reviewer?: JPReviewer | null;
   reviewed_at?: string | null;
