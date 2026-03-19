@@ -42,6 +42,7 @@ import {
 import JobProfilePreview from "../components/JobProfilePreview";
 import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { useClients } from "../services/clients/hooks";
 import { useUrlFilters } from "../hooks/useUrlFilters";
 import type {
   JobProfile,
@@ -60,6 +61,8 @@ const statusColors: Record<string, string> = {
 export default function JobProfiles() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: clients = [] } = useClients();
+  const clientLogo = clients.find((c) => c.id === user?.clientId)?.logo || null;
   const isAdmin = user?.role === "ADMIN";
   const [profiles, setProfiles] = useState<JobProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1342,6 +1345,7 @@ export default function JobProfiles() {
           setPreviewOpened(false);
           setPreviewProfile(null);
         }}
+        clientLogo={clientLogo}
       />
     </Stack>
   );

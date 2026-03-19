@@ -3,101 +3,152 @@ import {
   Page,
   Text as PDFText,
   View,
+  Image as PDFImage,
   StyleSheet,
   pdf,
 } from "@react-pdf/renderer";
 import { notifications } from "@mantine/notifications";
-import type { Competency, CompetencyQuestion } from "../services/competencies/interfaces";
-import type { CbiTemplate, CompetencySelection } from "../services/cbi/interfaces";
+import type {
+  Competency,
+  CompetencyQuestion,
+} from "../services/competencies/interfaces";
+import type {
+  CbiTemplate,
+  CompetencySelection,
+} from "../services/cbi/interfaces";
+
+/* ─── Brand colours ─── */
+const BRAND = "#1a365d";
+const BORDER = "#cbd5e1";
 
 /* ─── PDF Styles ─── */
 const s = StyleSheet.create({
   page: {
     padding: 40,
+    paddingBottom: 60,
     fontFamily: "Helvetica",
     fontSize: 10,
     color: "#222",
   },
-  /* Header */
-  header: {
-    marginBottom: 20,
+
+  /* ── Header ── */
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  logo: {
+    width: 80,
+    height: 40,
+    objectFit: "contain" as const,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: "Helvetica-Bold",
-    marginBottom: 4,
+    color: BRAND,
   },
   subtitle: {
     fontSize: 10,
     color: "#666",
-    marginBottom: 16,
+    marginTop: 2,
   },
-  /* Info fields (Candidate Name, Date, Panel) */
+  headerDivider: {
+    borderBottomWidth: 2,
+    borderBottomColor: BRAND,
+    marginBottom: 18,
+    marginTop: 8,
+  },
+
+  /* ── Info section (Candidate, Date, Panel) ── */
+  infoBox: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 4,
+    padding: 14,
+    marginBottom: 20,
+  },
+  infoTitle: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    color: BRAND,
+    marginBottom: 10,
+    textTransform: "uppercase" as const,
+  },
   fieldRow: {
     flexDirection: "row",
-    marginBottom: 12,
+    marginBottom: 14,
     alignItems: "flex-end",
   },
   fieldLabel: {
-    width: 140,
+    width: 130,
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
+    color: "#444",
   },
   fieldLine: {
     flex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: "#aaa",
+    borderBottomColor: "#bbb",
     height: 18,
   },
-  /* Panel rows (multiple blank lines) */
-  panelRow: {
-    flexDirection: "row",
-    marginBottom: 12,
-    alignItems: "flex-end",
+  panelSpacer: {
+    marginTop: 4,
   },
-  panelLabel: {
-    width: 140,
-    fontSize: 10,
-    fontFamily: "Helvetica-Bold",
-  },
-  /* Competency section */
+
+  /* ── Competency section header ── */
   competencyHeader: {
-    fontSize: 13,
+    backgroundColor: BRAND,
+    color: "#fff",
+    fontSize: 12,
     fontFamily: "Helvetica-Bold",
+    padding: 8,
+    paddingHorizontal: 10,
     marginTop: 16,
-    marginBottom: 8,
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#333",
+    marginBottom: 10,
+    borderRadius: 3,
   },
-  /* Question */
+
+  /* ── Question ── */
   questionRow: {
-    marginBottom: 14,
+    marginBottom: 12,
   },
   questionText: {
     fontSize: 10,
+    lineHeight: 1.4,
     marginBottom: 6,
+    color: "#333",
   },
   answerBox: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: BORDER,
     borderRadius: 3,
-    minHeight: 60,
-    padding: 6,
+    minHeight: 65,
+    backgroundColor: "#fafbfc",
   },
-  /* Footer */
+
+  /* ── Footer ── */
   footer: {
     position: "absolute",
-    bottom: 30,
+    bottom: 25,
     left: 40,
     right: 40,
-    textAlign: "center",
-    fontSize: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+    paddingTop: 6,
+  },
+  footerText: {
+    fontSize: 7,
     color: "#999",
   },
 });
 
-/* ─── Types for grouped data ─── */
+/* ─── Types ─── */
 interface QuestionGroup {
   competency_name: string;
   level: number;
@@ -108,87 +159,96 @@ interface QuestionGroup {
 function CbiTemplatePdfDoc({
   template,
   groups,
+  clientLogo,
 }: {
   template: CbiTemplate;
   groups: QuestionGroup[];
+  clientLogo?: string | null;
 }) {
   let globalIdx = 0;
 
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        {/* Title */}
-        <View style={s.header}>
-          <PDFText style={s.title}>{template.template_name}</PDFText>
-          {template.description && (
-            <PDFText style={s.subtitle}>{template.description}</PDFText>
-          )}
-        </View>
-
-        {/* Candidate Name */}
-        <View style={s.fieldRow}>
-          <PDFText style={s.fieldLabel}>Candidate's Name:</PDFText>
-          <View style={s.fieldLine} />
-        </View>
-
-        {/* Interview Date */}
-        <View style={s.fieldRow}>
-          <PDFText style={s.fieldLabel}>Interview Date:</PDFText>
-          <View style={s.fieldLine} />
-        </View>
-
-        {/* Interview Panel — 3 blank rows */}
-        <View style={{ marginBottom: 4 }} />
-        <View style={s.panelRow}>
-          <PDFText style={s.panelLabel} />
-          <View style={s.fieldLine} />
-        </View>
-        <View style={s.panelRow}>
-          <PDFText style={s.panelLabel} />
-          <View style={s.fieldLine} />
-        </View>
-        <View style={s.fieldRow}>
-          <PDFText style={s.fieldLabel}>Interview Panel:</PDFText>
-          <View style={s.fieldLine} />
-        </View>
-        <View style={s.panelRow}>
-          <PDFText style={s.panelLabel} />
-          <View style={s.fieldLine} />
-        </View>
-        <View style={s.panelRow}>
-          <PDFText style={s.panelLabel} />
-          <View style={s.fieldLine} />
-        </View>
-
-        {/* Questions grouped by competency */}
-        {groups.map((group, gi) => (
-          <View key={gi} wrap={false}>
-            <PDFText style={s.competencyHeader}>
-              {group.competency_name}
-            </PDFText>
-            {group.questions.map((q) => {
-              globalIdx += 1;
-              return (
-                <View key={q.competency_question_id} style={s.questionRow}>
-                  <PDFText style={s.questionText}>
-                    {globalIdx}. {q.question}
-                  </PDFText>
-                  <View style={s.answerBox} />
-                </View>
-              );
-            })}
+        {/* ── Header ── */}
+        <View style={s.headerRow}>
+          <View style={s.headerLeft}>
+            <PDFText style={s.title}>{template.template_name}</PDFText>
+            {template.description && (
+              <PDFText style={s.subtitle}>{template.description}</PDFText>
+            )}
           </View>
-        ))}
+          {clientLogo && <PDFImage src={clientLogo} style={s.logo} />}
+        </View>
+        <View style={s.headerDivider} />
 
-        <PDFText style={s.footer}>
-          {template.template_name} — Competency-Based Interview Questionnaire
-        </PDFText>
+        {/* ── Info Section ── */}
+        <View style={s.infoBox}>
+          <PDFText style={s.infoTitle}>Interview Details</PDFText>
+
+          <View style={s.fieldRow}>
+            <PDFText style={s.fieldLabel}>Candidate's Name:</PDFText>
+            <View style={s.fieldLine} />
+          </View>
+
+          <View style={s.fieldRow}>
+            <PDFText style={s.fieldLabel}>Interview Date:</PDFText>
+            <View style={s.fieldLine} />
+          </View>
+
+          <View style={s.panelSpacer} />
+          <View style={s.fieldRow}>
+            <PDFText style={s.fieldLabel}>Interview Panel:</PDFText>
+            <View style={s.fieldLine} />
+          </View>
+          <View style={s.fieldRow}>
+            <PDFText style={s.fieldLabel} />
+            <View style={s.fieldLine} />
+          </View>
+          <View style={{ ...s.fieldRow, marginBottom: 0 }}>
+            <PDFText style={s.fieldLabel} />
+            <View style={s.fieldLine} />
+          </View>
+        </View>
+
+        {/* ── Questions grouped by competency ── */}
+        {groups.map((group, gi) => {
+          const groupQuestions = group.questions.map((q) => {
+            globalIdx += 1;
+            return (
+              <View key={q.competency_question_id} style={s.questionRow}>
+                <PDFText style={s.questionText}>
+                  {globalIdx}. {q.question}
+                </PDFText>
+                <View style={s.answerBox} />
+              </View>
+            );
+          });
+
+          return (
+            <View key={gi}>
+              <PDFText style={s.competencyHeader}>
+                {group.competency_name}
+              </PDFText>
+              {groupQuestions}
+            </View>
+          );
+        })}
+
+        {/* ── Footer ── */}
+        <View style={s.footer} fixed>
+          <PDFText style={s.footerText}>
+            {template.template_name} — Competency-Based Interview
+            Questionnaire
+          </PDFText>
+          <PDFText style={s.footerText}>Confidential</PDFText>
+        </View>
       </Page>
     </Document>
   );
 }
 
-/* ─── Public download function ─── */
+/* ─── Public helpers ─── */
 export function buildQuestionGroups(
   template: CbiTemplate,
   competencies: Competency[],
@@ -220,6 +280,7 @@ export async function downloadCbiTemplatePdf(
   template: CbiTemplate,
   competencies: Competency[],
   allQuestions: CompetencyQuestion[],
+  clientLogo?: string | null,
 ) {
   const groups = buildQuestionGroups(template, competencies, allQuestions);
 
@@ -234,7 +295,11 @@ export async function downloadCbiTemplatePdf(
 
   try {
     const blob = await pdf(
-      <CbiTemplatePdfDoc template={template} groups={groups} />,
+      <CbiTemplatePdfDoc
+        template={template}
+        groups={groups}
+        clientLogo={clientLogo}
+      />,
     ).toBlob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

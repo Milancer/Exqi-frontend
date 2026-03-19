@@ -46,6 +46,8 @@ import {
   useCompetencies,
   useCompetencyQuestions,
 } from "../services/competencies/hooks";
+import { useClients } from "../services/clients/hooks";
+import { useAuth } from "../contexts/AuthContext";
 import { downloadCbiTemplatePdf } from "../components/CbiTemplatePdf";
 
 const levelColors: Record<number, string> = {
@@ -58,6 +60,9 @@ const levelColors: Record<number, string> = {
 
 /* ─── Main Page ─── */
 export default function CbiTemplates() {
+  const { user } = useAuth();
+  const { data: clients = [] } = useClients();
+  const clientLogo = clients.find((c) => c.id === user?.clientId)?.logo || null;
   const { data: templates = [], isLoading: loading } = useCbiTemplates();
   const { data: competencies = [] } = useCompetencies();
   const { data: allQuestions = [] } = useCompetencyQuestions();
@@ -373,6 +378,7 @@ export default function CbiTemplates() {
                               template,
                               competencies,
                               allQuestions,
+                              clientLogo,
                             )
                           }
                         >

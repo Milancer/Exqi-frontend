@@ -30,6 +30,7 @@ interface JobProfilePreviewProps {
   profile: JobProfile | null;
   opened: boolean;
   onClose: () => void;
+  clientLogo?: string | null;
 }
 
 // PDF Styles
@@ -129,7 +130,13 @@ const pdfStyles = StyleSheet.create({
 });
 
 // PDF Document Component
-const JobProfilePDF = ({ profile }: { profile: JobProfile }) => {
+const JobProfilePDF = ({
+  profile,
+  clientLogo,
+}: {
+  profile: JobProfile;
+  clientLogo?: string | null;
+}) => {
   const approvedApprovers = (profile.approvers || [])
     .filter((a) => a.status === "Approved")
     .sort((a, _b) => (a.type === "reviewer" ? -1 : 1));
@@ -138,12 +145,27 @@ const JobProfilePDF = ({ profile }: { profile: JobProfile }) => {
     <Document>
       <Page size="A4" style={pdfStyles.page}>
         {/* Header */}
-        <View style={pdfStyles.header}>
-          <PDFText style={pdfStyles.title}>{profile.job_title}</PDFText>
-          <PDFText style={pdfStyles.subtitle}>
-            {profile.division || "No Division"} |{" "}
-            {profile.job_family || "No Family"} | Status: {profile.status}
-          </PDFText>
+        <View
+          style={{
+            ...pdfStyles.header,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <PDFText style={pdfStyles.title}>{profile.job_title}</PDFText>
+            <PDFText style={pdfStyles.subtitle}>
+              {profile.division || "No Division"} |{" "}
+              {profile.job_family || "No Family"} | Status: {profile.status}
+            </PDFText>
+          </View>
+          {clientLogo && (
+            <PDFImage
+              src={clientLogo}
+              style={{ width: 80, height: 40, objectFit: "contain" as const }}
+            />
+          )}
         </View>
 
         {/* Job Purpose */}
@@ -385,6 +407,7 @@ export default function JobProfilePreview({
   profile,
   opened,
   onClose,
+  clientLogo,
 }: JobProfilePreviewProps) {
   const [downloading, setDownloading] = useState(false);
 
@@ -393,7 +416,9 @@ export default function JobProfilePreview({
 
     setDownloading(true);
     try {
-      const blob = await pdf(<JobProfilePDF profile={profile} />).toBlob();
+      const blob = await pdf(
+        <JobProfilePDF profile={profile} clientLogo={clientLogo} />,
+      ).toBlob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
