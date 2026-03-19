@@ -83,6 +83,11 @@ export default function JobProfileDetail() {
   // Lightweight profile options for the "Reports To" dropdown
   const [profileOptions, setProfileOptions] = useState<{ value: number; label: string }[]>([]);
 
+  // Reference data for dropdowns
+  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
+  const [jobGrades, setJobGrades] = useState<{ value: string; label: string }[]>([]);
+  const [workLevels, setWorkLevels] = useState<{ value: string; label: string }[]>([]);
+
   // Skills
   const [addSkillName, setAddSkillName] = useState("");
   const [addSkillLevel, setAddSkillLevel] = useState<number>(3);
@@ -173,6 +178,36 @@ export default function JobProfileDetail() {
     }
   }, []);
 
+  const fetchReferenceData = useCallback(async () => {
+    try {
+      const [deptRes, gradeRes, levelRes] = await Promise.all([
+        api.get("/departments"),
+        api.get("/job-grades"),
+        api.get("/work-levels"),
+      ]);
+      setDepartments(
+        (deptRes.data || []).map((d: any) => ({
+          value: String(d.department_id),
+          label: d.department,
+        })),
+      );
+      setJobGrades(
+        (gradeRes.data || []).map((g: any) => ({
+          value: String(g.job_grade_id),
+          label: g.job_grade,
+        })),
+      );
+      setWorkLevels(
+        (levelRes.data || []).map((w: any) => ({
+          value: String(w.work_level_id),
+          label: w.level_of_work,
+        })),
+      );
+    } catch {
+      /* silent */
+    }
+  }, []);
+
   const fetchCandidates = useCallback(async () => {
     try {
       const [reviewerRes, approverRes] = await Promise.all([
@@ -190,11 +225,13 @@ export default function JobProfileDetail() {
     fetchProfile();
     fetchCompetencies();
     fetchProfileOptions();
+    fetchReferenceData();
     fetchCandidates();
   }, [
     fetchProfile,
     fetchCompetencies,
     fetchProfileOptions,
+    fetchReferenceData,
     fetchCandidates,
   ]);
 
@@ -613,11 +650,20 @@ export default function JobProfileDetail() {
                   label="Location"
                   {...descForm.getInputProps("job_location")}
                 />
-                <NumberInput
+                <Select
                   label="Level of Work"
-                  min={1}
-                  max={7}
-                  {...descForm.getInputProps("level_of_work")}
+                  placeholder="Select level"
+                  data={workLevels}
+                  value={
+                    descForm.values.level_of_work
+                      ? String(descForm.values.level_of_work)
+                      : null
+                  }
+                  onChange={(v) =>
+                    descForm.setFieldValue("level_of_work", v ? Number(v) : "")
+                  }
+                  searchable
+                  clearable
                 />
               </Group>
               <Group grow>
@@ -651,17 +697,35 @@ export default function JobProfileDetail() {
                 />
               </Group>
               <Group grow>
-                <NumberInput
-                  label="Department ID"
-                  placeholder="Optional"
-                  min={1}
-                  {...descForm.getInputProps("department_id")}
+                <Select
+                  label="Department"
+                  placeholder="Select department"
+                  data={departments}
+                  value={
+                    descForm.values.department_id
+                      ? String(descForm.values.department_id)
+                      : null
+                  }
+                  onChange={(v) =>
+                    descForm.setFieldValue("department_id", v ? Number(v) : "")
+                  }
+                  searchable
+                  clearable
                 />
-                <NumberInput
-                  label="Job Grade ID"
-                  placeholder="Optional"
-                  min={1}
-                  {...descForm.getInputProps("job_grade_id")}
+                <Select
+                  label="Job Grade"
+                  placeholder="Select job grade"
+                  data={jobGrades}
+                  value={
+                    descForm.values.job_grade_id
+                      ? String(descForm.values.job_grade_id)
+                      : null
+                  }
+                  onChange={(v) =>
+                    descForm.setFieldValue("job_grade_id", v ? Number(v) : "")
+                  }
+                  searchable
+                  clearable
                 />
               </Group>
               <Button

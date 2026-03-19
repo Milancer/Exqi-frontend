@@ -85,6 +85,11 @@ export default function JobProfiles() {
   // Division options fetched from server
   const [divisionOptions, setDivisionOptions] = useState<{ value: string; label: string }[]>([]);
 
+  // Reference data for dropdowns
+  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
+  const [jobGrades, setJobGrades] = useState<{ value: string; label: string }[]>([]);
+  const [workLevels, setWorkLevels] = useState<{ value: string; label: string }[]>([]);
+
   /* Reference data for competency picker in create modal */
   const [allCompetencies, setAllCompetencies] = useState<JpCompetency[]>([]);
 
@@ -187,6 +192,36 @@ export default function JobProfiles() {
     }
   }, []);
 
+  const fetchReferenceData = useCallback(async () => {
+    try {
+      const [deptRes, gradeRes, levelRes] = await Promise.all([
+        api.get("/departments"),
+        api.get("/job-grades"),
+        api.get("/work-levels"),
+      ]);
+      setDepartments(
+        (deptRes.data || []).map((d: any) => ({
+          value: String(d.department_id),
+          label: d.department,
+        })),
+      );
+      setJobGrades(
+        (gradeRes.data || []).map((g: any) => ({
+          value: String(g.job_grade_id),
+          label: g.job_grade,
+        })),
+      );
+      setWorkLevels(
+        (levelRes.data || []).map((w: any) => ({
+          value: String(w.work_level_id),
+          label: w.level_of_work,
+        })),
+      );
+    } catch {
+      /* silent */
+    }
+  }, []);
+
   const fetchReviewerCandidates = useCallback(async () => {
     try {
       const [revRes, appRes] = await Promise.all([
@@ -209,8 +244,9 @@ export default function JobProfiles() {
   useEffect(() => {
     fetchDivisions();
     fetchCompetencies();
+    fetchReferenceData();
     fetchReviewerCandidates();
-  }, [fetchDivisions, fetchCompetencies, fetchReviewerCandidates]);
+  }, [fetchDivisions, fetchCompetencies, fetchReferenceData, fetchReviewerCandidates]);
 
   // Reset to page 1 when search or filters change
   const prevSearch = useRef(debouncedSearch);
@@ -677,12 +713,20 @@ export default function JobProfiles() {
                   {...descForm.getInputProps("job_purpose")}
                 />
                 <Group grow>
-                  <NumberInput
+                  <Select
                     label="Level of Work"
-                    min={1}
-                    max={7}
-                    placeholder="1-7"
-                    {...descForm.getInputProps("level_of_work")}
+                    placeholder="Select level"
+                    data={workLevels}
+                    value={
+                      descForm.values.level_of_work
+                        ? String(descForm.values.level_of_work)
+                        : null
+                    }
+                    onChange={(v) =>
+                      descForm.setFieldValue("level_of_work", v ? Number(v) : "")
+                    }
+                    searchable
+                    clearable
                   />
                   <Select
                     label="Reports To"
@@ -714,17 +758,35 @@ export default function JobProfiles() {
                   />
                 </Group>
                 <Group grow>
-                  <NumberInput
-                    label="Department ID"
-                    placeholder="Optional"
-                    min={1}
-                    {...descForm.getInputProps("department_id")}
+                  <Select
+                    label="Department"
+                    placeholder="Select department"
+                    data={departments}
+                    value={
+                      descForm.values.department_id
+                        ? String(descForm.values.department_id)
+                        : null
+                    }
+                    onChange={(v) =>
+                      descForm.setFieldValue("department_id", v ? Number(v) : "")
+                    }
+                    searchable
+                    clearable
                   />
-                  <NumberInput
-                    label="Job Grade ID"
-                    placeholder="Optional"
-                    min={1}
-                    {...descForm.getInputProps("job_grade_id")}
+                  <Select
+                    label="Job Grade"
+                    placeholder="Select job grade"
+                    data={jobGrades}
+                    value={
+                      descForm.values.job_grade_id
+                        ? String(descForm.values.job_grade_id)
+                        : null
+                    }
+                    onChange={(v) =>
+                      descForm.setFieldValue("job_grade_id", v ? Number(v) : "")
+                    }
+                    searchable
+                    clearable
                   />
                 </Group>
                 <Button
