@@ -51,6 +51,7 @@ import type {
 
 const statusColors: Record<string, string> = {
   "In Progress": "blue",
+  "Awaiting Review": "orange",
   "Awaiting Approval": "yellow",
   Approved: "teal",
   Deleted: "red",
@@ -415,6 +416,7 @@ export default function JobProfiles() {
             placeholder="Status"
             data={[
               { value: "In Progress", label: "In Progress" },
+              { value: "Awaiting Review", label: "Awaiting Review" },
               { value: "Awaiting Approval", label: "Awaiting Approval" },
               { value: "Approved", label: "Approved" },
             ]}
@@ -693,6 +695,7 @@ export default function JobProfiles() {
                     label="Status"
                     data={[
                       { value: "In Progress", label: "In Progress" },
+                      { value: "Awaiting Review", label: "Awaiting Review" },
                       { value: "Awaiting Approval", label: "Awaiting Approval" },
                       { value: "Approved", label: "Approved" },
                     ]}

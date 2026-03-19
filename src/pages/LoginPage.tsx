@@ -9,13 +9,11 @@ import {
   Text,
   Stack,
   Box,
-  ThemeIcon,
   Transition,
   Anchor,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import { IconBrain } from "@tabler/icons-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginPage() {
@@ -113,16 +111,13 @@ export default function LoginPage() {
             p="xl"
           >
             <Stack align="center" gap="xs" mb="xl">
-              <ThemeIcon
-                size={56}
-                radius="xl"
-                variant="gradient"
-                gradient={{ from: "indigo", to: "violet", deg: 135 }}
-              >
-                <IconBrain size={28} stroke={1.5} />
-              </ThemeIcon>
+              <img
+                src="/explogo.png"
+                alt="EXQi"
+                style={{ height: 56, width: 'auto' }}
+              />
               <Title order={2} fw={800} ta="center">
-                Nexus
+                EXQi
               </Title>
               <Text c="dimmed" size="sm" ta="center">
                 Competency & Interview Management
@@ -170,7 +165,7 @@ export default function LoginPage() {
             </form>
 
             <Text c="dimmed" size="xs" ta="center" mt="xl">
-              Nexus Platform © {new Date().getFullYear()}
+              EXQi Platform © {new Date().getFullYear()}
             </Text>
           </Paper>
         )}

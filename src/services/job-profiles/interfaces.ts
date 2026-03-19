@@ -74,6 +74,7 @@ export interface JPApprover {
   job_profile_approver_id: number;
   job_profile_id: number;
   approver_id: number;
+  type: 'reviewer' | 'approver';
   status: 'Pending' | 'Approved' | 'Rejected';
   approved_at: string | null;
   created_at: string;

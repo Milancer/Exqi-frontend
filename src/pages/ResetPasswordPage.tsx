@@ -278,7 +278,7 @@ export default function ResetPasswordPage() {
             {renderContent()}
 
             <Text c="dimmed" size="xs" ta="center" mt="xl">
-              Nexus Platform © {new Date().getFullYear()}
+              EXQi Platform © {new Date().getFullYear()}
             </Text>
           </Paper>
         )}

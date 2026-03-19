@@ -33,6 +33,7 @@ import { useClients } from "../services/clients/hooks";
 const roleOptions = [
   { value: "ADMIN", label: "Admin" },
   { value: "OFFICE_MANAGER", label: "Office Manager" },
+  { value: "OFFICE_REVIEWER", label: "Office Reviewer" },
   { value: "OFFICE_USER", label: "Office User" },
 ];
 
@@ -44,6 +45,7 @@ const statusOptions = [
 const roleColor: Record<string, string> = {
   ADMIN: "red",
   OFFICE_MANAGER: "blue",
+  OFFICE_REVIEWER: "cyan",
   OFFICE_USER: "gray",
 };
 

@@ -87,13 +87,25 @@ export async function removeDeliverable(
   await api.delete(`/job-profiles/${profileId}/deliverables/${deliverableId}`);
 }
 
-/* ── Approvers ── */
-export async function assignApprovers(
+/* ── Two-step Review → Approval workflow ── */
+export async function submitForReview(
   profileId: number,
-  approverIds: number[],
+  reviewerId: number,
+  approverId: number,
 ): Promise<JobProfile> {
-  const res = await api.post(`/job-profiles/${profileId}/assign-approvers`, {
-    approver_ids: approverIds,
+  const res = await api.post(`/job-profiles/${profileId}/submit-for-review`, {
+    reviewer_id: reviewerId,
+    approver_id: approverId,
+  });
+  return res.data;
+}
+
+export async function reviewerAction(
+  profileId: number,
+  action: "approve" | "reject",
+): Promise<JobProfile> {
+  const res = await api.post(`/job-profiles/${profileId}/reviewer-action`, {
+    action,
   });
   return res.data;
 }

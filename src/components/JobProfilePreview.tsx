@@ -130,9 +130,9 @@ const pdfStyles = StyleSheet.create({
 
 // PDF Document Component
 const JobProfilePDF = ({ profile }: { profile: JobProfile }) => {
-  const approvedApprovers = (profile.approvers || []).filter(
-    (a) => a.status === "Approved"
-  );
+  const approvedApprovers = (profile.approvers || [])
+    .filter((a) => a.status === "Approved")
+    .sort((a, b) => (a.type === "reviewer" ? -1 : 1));
 
   return (
     <Document>
@@ -328,22 +328,28 @@ const JobProfilePDF = ({ profile }: { profile: JobProfile }) => {
             <PDFText style={pdfStyles.sectionHeader}>APPROVALS</PDFText>
             <View style={pdfStyles.table}>
               <View style={pdfStyles.tableHeader}>
-                <PDFText style={[pdfStyles.tableCell, { width: "30%" }]}>
+                <PDFText style={[pdfStyles.tableCell, { width: "18%" }]}>
+                  Role
+                </PDFText>
+                <PDFText style={[pdfStyles.tableCell, { width: "25%" }]}>
                   Name
                 </PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "40%" }]}>
+                <PDFText style={[pdfStyles.tableCell, { width: "35%" }]}>
                   Signature
                 </PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "30%" }]}>
+                <PDFText style={[pdfStyles.tableCell, { width: "22%" }]}>
                   Date
                 </PDFText>
               </View>
               {approvedApprovers.map((app, idx) => (
                 <View key={idx} style={pdfStyles.tableRow}>
-                  <PDFText style={[pdfStyles.tableCell, { width: "30%" }]}>
+                  <PDFText style={[pdfStyles.tableCell, { width: "18%" }]}>
+                    {app.type === "reviewer" ? "Reviewer" : "Approver"}
+                  </PDFText>
+                  <PDFText style={[pdfStyles.tableCell, { width: "25%" }]}>
                     {app.approver.name} {app.approver.surname}
                   </PDFText>
-                  <View style={[pdfStyles.signatureCell, { width: "40%" }]}>
+                  <View style={[pdfStyles.signatureCell, { width: "35%" }]}>
                     {app.approver.signature ? (
                       <PDFImage
                         src={app.approver.signature}
@@ -355,7 +361,7 @@ const JobProfilePDF = ({ profile }: { profile: JobProfile }) => {
                       </PDFText>
                     )}
                   </View>
-                  <PDFText style={[pdfStyles.tableCell, { width: "30%" }]}>
+                  <PDFText style={[pdfStyles.tableCell, { width: "22%" }]}>
                     {app.approved_at
                       ? new Date(app.approved_at).toLocaleDateString()
                       : "N/A"}
@@ -414,9 +420,9 @@ export default function JobProfilePreview({
 
   if (!profile) return null;
 
-  const approvedApprovers = (profile.approvers || []).filter(
-    (a) => a.status === "Approved"
-  );
+  const approvedApprovers = (profile.approvers || [])
+    .filter((a) => a.status === "Approved")
+    .sort((a, b) => (a.type === "reviewer" ? -1 : 1));
 
   return (
     <Modal
@@ -741,6 +747,7 @@ export default function JobProfilePreview({
                 >
                   <Table.Thead>
                     <Table.Tr>
+                      <Table.Th w={100}>Role</Table.Th>
                       <Table.Th>Name</Table.Th>
                       <Table.Th w={180}>Signature</Table.Th>
                       <Table.Th w={120}>Date</Table.Th>
@@ -749,6 +756,15 @@ export default function JobProfilePreview({
                   <Table.Tbody>
                     {approvedApprovers.map((app) => (
                       <Table.Tr key={app.job_profile_approver_id}>
+                        <Table.Td>
+                          <Badge
+                            size="sm"
+                            variant="light"
+                            color={app.type === "reviewer" ? "cyan" : "blue"}
+                          >
+                            {app.type === "reviewer" ? "Reviewer" : "Approver"}
+                          </Badge>
+                        </Table.Td>
                         <Table.Td>
                           <Text size="sm" fw={500}>
                             {app.approver.name} {app.approver.surname}

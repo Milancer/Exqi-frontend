@@ -10,7 +10,6 @@ import {
   Menu,
   rem,
   Box,
-  ThemeIcon,
   Divider,
   Indicator,
   ActionIcon,
@@ -142,16 +141,13 @@ export default function DashboardLayout() {
               size="sm"
               color="#fff"
             />
-            <ThemeIcon
-              size="lg"
-              radius="md"
-              variant="gradient"
-              gradient={{ from: "#4dabf7", to: "#228be6", deg: 135 }}
-            >
-              <IconBrain size={18} stroke={1.5} />
-            </ThemeIcon>
+            <img
+              src="/explogo.png"
+              alt="EXQi"
+              style={{ height: 32, width: 'auto' }}
+            />
             <Text size="lg" fw={800} c="#fff">
-              Nexus
+              EXQi
             </Text>
           </Group>
 
