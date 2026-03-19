@@ -132,7 +132,7 @@ const pdfStyles = StyleSheet.create({
 const JobProfilePDF = ({ profile }: { profile: JobProfile }) => {
   const approvedApprovers = (profile.approvers || [])
     .filter((a) => a.status === "Approved")
-    .sort((a, b) => (a.type === "reviewer" ? -1 : 1));
+    .sort((a, _b) => (a.type === "reviewer" ? -1 : 1));
 
   return (
     <Document>
@@ -422,7 +422,7 @@ export default function JobProfilePreview({
 
   const approvedApprovers = (profile.approvers || [])
     .filter((a) => a.status === "Approved")
-    .sort((a, b) => (a.type === "reviewer" ? -1 : 1));
+    .sort((a, _b) => (a.type === "reviewer" ? -1 : 1));
 
   return (
     <Modal

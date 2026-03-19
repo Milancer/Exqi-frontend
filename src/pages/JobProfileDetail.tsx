@@ -1215,7 +1215,7 @@ export default function JobProfileDetail() {
                     </Table.Thead>
                     <Table.Tbody>
                       {profile.approvers
-                        .sort((a, b) => (a.type === "reviewer" ? -1 : 1))
+                        .sort((a, _b) => (a.type === "reviewer" ? -1 : 1))
                         .map((app) => (
                           <Table.Tr key={app.job_profile_approver_id}>
                             <Table.Td>
