@@ -5,7 +5,6 @@ import {
   TextInput,
   PasswordInput,
   Button,
-  Title,
   Text,
   Stack,
   Box,
@@ -114,11 +113,8 @@ export default function LoginPage() {
               <img
                 src="/explogo.png"
                 alt="EXQi"
-                style={{ height: 56, width: 'auto' }}
+                style={{ height: 64, width: 'auto' }}
               />
-              <Title order={2} fw={800} ta="center">
-                EXQi
-              </Title>
               <Text c="dimmed" size="sm" ta="center">
                 Competency & Interview Management
               </Text>
