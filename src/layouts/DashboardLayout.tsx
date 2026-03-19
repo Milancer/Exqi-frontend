@@ -146,9 +146,6 @@ export default function DashboardLayout() {
               alt="EXQi"
               style={{ height: 32, width: 'auto' }}
             />
-            <Text size="lg" fw={800} c="#fff">
-              EXQi
-            </Text>
           </Group>
 
           <Group gap="sm">

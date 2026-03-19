@@ -111,11 +111,15 @@ export default function JobProfiles() {
     other_requirements: "",
   });
 
-  // Reviewer candidates
+  // Reviewer & approver candidates
   const [reviewerCandidates, setReviewerCandidates] = useState<JPReviewer[]>(
     [],
   );
+  const [approverCandidates, setApproverCandidates] = useState<JPReviewer[]>(
+    [],
+  );
   const [createReviewerId, setCreateReviewerId] = useState<string | null>(null);
+  const [createApproverId, setCreateApproverId] = useState<string | null>(null);
 
   /* forms */
   const descForm = useForm({
@@ -185,8 +189,12 @@ export default function JobProfiles() {
 
   const fetchReviewerCandidates = useCallback(async () => {
     try {
-      const res = await api.get("/job-profiles/reviewer-candidates");
-      setReviewerCandidates(res.data);
+      const [revRes, appRes] = await Promise.all([
+        api.get("/job-profiles/reviewer-candidates"),
+        api.get("/job-profiles/approver-candidates"),
+      ]);
+      setReviewerCandidates(revRes.data);
+      setApproverCandidates(appRes.data);
     } catch {
       /* silent */
     }
@@ -293,11 +301,12 @@ export default function JobProfiles() {
         }
       }
 
-      // Assign reviewer if selected
-      if (createReviewerId) {
+      // Submit for review if both reviewer and approver selected
+      if (createReviewerId && createApproverId) {
         try {
-          await api.post(`/job-profiles/${newId}/assign-reviewer`, {
+          await api.post(`/job-profiles/${newId}/submit-for-review`, {
             reviewer_id: Number(createReviewerId),
+            approver_id: Number(createApproverId),
           });
         } catch {
           /* skip if fails */
@@ -326,6 +335,7 @@ export default function JobProfiles() {
         other_requirements: "",
       });
       setCreateReviewerId(null);
+      setCreateApproverId(null);
       setModalOpened(false);
       descForm.reset();
 
@@ -583,6 +593,7 @@ export default function JobProfiles() {
             other_requirements: "",
           });
           setCreateReviewerId(null);
+          setCreateApproverId(null);
         }}
         title="Create Job Profile"
         size="xl"
@@ -1210,11 +1221,11 @@ export default function JobProfiles() {
           <Tabs.Panel value="approval">
             <Stack>
               <Text size="sm" c="dimmed">
-                Optionally assign an Office Manager to review this job profile
-                after creation.
+                Optionally submit this job profile for review and approval after
+                creation. Both a Reviewer and Approver must be selected.
               </Text>
               <Select
-                label="Assign Reviewer (Office Manager)"
+                label="Reviewer (Office Reviewer)"
                 placeholder="Select a reviewer (optional)"
                 data={reviewerCandidates.map((r) => ({
                   value: String(r.id),
@@ -1225,10 +1236,29 @@ export default function JobProfiles() {
                 searchable
                 clearable
               />
-              {createReviewerId && (
+              <Select
+                label="Approver (Office Manager)"
+                placeholder="Select an approver (optional)"
+                data={approverCandidates.map((r) => ({
+                  value: String(r.id),
+                  label: `${r.name} ${r.surname} (${r.email})`,
+                }))}
+                value={createApproverId}
+                onChange={setCreateApproverId}
+                searchable
+                clearable
+              />
+              {createReviewerId && createApproverId && (
                 <Text size="xs" c="dimmed">
-                  The selected reviewer will be notified after the profile is
-                  created and its status will be set to "Awaiting Approval".
+                  The profile will be submitted for review. The Reviewer will be
+                  notified first, then the Approver after the review is complete.
+                </Text>
+              )}
+              {((createReviewerId && !createApproverId) ||
+                (!createReviewerId && createApproverId)) && (
+                <Text size="xs" c="orange">
+                  Both a Reviewer and Approver must be selected to submit for
+                  review.
                 </Text>
               )}
             </Stack>
