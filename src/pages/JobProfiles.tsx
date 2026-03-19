@@ -193,33 +193,39 @@ export default function JobProfiles() {
   }, []);
 
   const fetchReferenceData = useCallback(async () => {
-    try {
-      const [deptRes, gradeRes, levelRes] = await Promise.all([
-        api.get("/departments"),
-        api.get("/job-grades"),
-        api.get("/work-levels"),
-      ]);
-      setDepartments(
-        (deptRes.data || []).map((d: any) => ({
-          value: String(d.department_id),
-          label: d.department,
-        })),
-      );
-      setJobGrades(
-        (gradeRes.data || []).map((g: any) => ({
-          value: String(g.job_grade_id),
-          label: g.job_grade,
-        })),
-      );
-      setWorkLevels(
-        (levelRes.data || []).map((w: any) => ({
-          value: String(w.work_level_id),
-          label: w.level_of_work,
-        })),
-      );
-    } catch {
-      /* silent */
-    }
+    api
+      .get("/departments")
+      .then((res) =>
+        setDepartments(
+          (res.data || []).map((d: any) => ({
+            value: String(d.department_id),
+            label: d.department,
+          })),
+        ),
+      )
+      .catch(() => {});
+    api
+      .get("/job-grades")
+      .then((res) =>
+        setJobGrades(
+          (res.data || []).map((g: any) => ({
+            value: String(g.job_grade_id),
+            label: g.job_grade,
+          })),
+        ),
+      )
+      .catch(() => {});
+    api
+      .get("/work-levels")
+      .then((res) =>
+        setWorkLevels(
+          (res.data || []).map((w: any) => ({
+            value: String(w.work_level_id),
+            label: w.level_of_work,
+          })),
+        ),
+      )
+      .catch(() => {});
   }, []);
 
   const fetchReviewerCandidates = useCallback(async () => {

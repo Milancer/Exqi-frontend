@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import expLogo from "../assets/explogo.png";
 import {
   Paper,
   TextInput,
@@ -111,7 +112,7 @@ export default function LoginPage() {
           >
             <Stack align="center" gap="xs" mb="xl">
               <img
-                src="/explogo.png"
+                src={expLogo}
                 alt="EXQi"
                 style={{ height: 64, width: 'auto' }}
               />

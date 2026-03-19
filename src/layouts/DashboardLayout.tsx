@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import expLogo from "../assets/explogo.png";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   AppShell,
@@ -142,7 +143,7 @@ export default function DashboardLayout() {
               color="#fff"
             />
             <img
-              src="/explogo.png"
+              src={expLogo}
               alt="EXQi"
               style={{ height: 32, width: 'auto' }}
             />

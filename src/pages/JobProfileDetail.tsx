@@ -179,33 +179,39 @@ export default function JobProfileDetail() {
   }, []);
 
   const fetchReferenceData = useCallback(async () => {
-    try {
-      const [deptRes, gradeRes, levelRes] = await Promise.all([
-        api.get("/departments"),
-        api.get("/job-grades"),
-        api.get("/work-levels"),
-      ]);
-      setDepartments(
-        (deptRes.data || []).map((d: any) => ({
-          value: String(d.department_id),
-          label: d.department,
-        })),
-      );
-      setJobGrades(
-        (gradeRes.data || []).map((g: any) => ({
-          value: String(g.job_grade_id),
-          label: g.job_grade,
-        })),
-      );
-      setWorkLevels(
-        (levelRes.data || []).map((w: any) => ({
-          value: String(w.work_level_id),
-          label: w.level_of_work,
-        })),
-      );
-    } catch {
-      /* silent */
-    }
+    api
+      .get("/departments")
+      .then((res) =>
+        setDepartments(
+          (res.data || []).map((d: any) => ({
+            value: String(d.department_id),
+            label: d.department,
+          })),
+        ),
+      )
+      .catch(() => {});
+    api
+      .get("/job-grades")
+      .then((res) =>
+        setJobGrades(
+          (res.data || []).map((g: any) => ({
+            value: String(g.job_grade_id),
+            label: g.job_grade,
+          })),
+        ),
+      )
+      .catch(() => {});
+    api
+      .get("/work-levels")
+      .then((res) =>
+        setWorkLevels(
+          (res.data || []).map((w: any) => ({
+            value: String(w.work_level_id),
+            label: w.level_of_work,
+          })),
+        ),
+      )
+      .catch(() => {});
   }, []);
 
   const fetchCandidates = useCallback(async () => {
@@ -326,6 +332,26 @@ export default function JobProfileDetail() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUpdateCompetency = async (
+    competencyId: number,
+    data: { level?: number; is_critical?: boolean; is_differentiating?: boolean },
+  ) => {
+    if (!profile) return;
+    try {
+      await api.patch(
+        `/job-profiles/${profile.job_profile_id}/competencies/${competencyId}`,
+        data,
+      );
+      await refreshProfile();
+    } catch {
+      notifications.show({
+        title: "Error",
+        message: "Failed to update competency",
+        color: "red",
+      });
     }
   };
 
@@ -939,8 +965,13 @@ export default function JobProfileDetail() {
                                                 },
                                               ]}
                                               value={String(linked!.level)}
-                                              onChange={() => {}}
-                                              disabled
+                                              onChange={(v) => {
+                                                if (v)
+                                                  handleUpdateCompetency(
+                                                    comp.jp_competency_id,
+                                                    { level: Number(v) },
+                                                  );
+                                              }}
                                             />
                                             <Badge
                                               size="xs"
@@ -950,6 +981,16 @@ export default function JobProfileDetail() {
                                                   : "gray"
                                               }
                                               variant="light"
+                                              style={{ cursor: "pointer" }}
+                                              onClick={() =>
+                                                handleUpdateCompetency(
+                                                  comp.jp_competency_id,
+                                                  {
+                                                    is_critical:
+                                                      !linked!.is_critical,
+                                                  },
+                                                )
+                                              }
                                             >
                                               {linked!.is_critical
                                                 ? "Critical"
@@ -963,6 +1004,16 @@ export default function JobProfileDetail() {
                                                   : "gray"
                                               }
                                               variant="light"
+                                              style={{ cursor: "pointer" }}
+                                              onClick={() =>
+                                                handleUpdateCompetency(
+                                                  comp.jp_competency_id,
+                                                  {
+                                                    is_differentiating:
+                                                      !linked!.is_differentiating,
+                                                  },
+                                                )
+                                              }
                                             >
                                               {linked!.is_differentiating
                                                 ? "Differentiating"

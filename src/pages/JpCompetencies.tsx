@@ -113,14 +113,14 @@ function TypesTab({
         await api.patch(`/job-profiles/competency-types/${editingId}`, values);
         notifications.show({
           title: "Updated",
-          message: "JP competency type updated",
+          message: "Competency type updated",
           color: "green",
         });
       } else {
         await api.post("/job-profiles/competency-types", values);
         notifications.show({
           title: "Created",
-          message: "JP competency type created",
+          message: "Competency type created",
           color: "green",
         });
       }
@@ -143,7 +143,7 @@ function TypesTab({
       await api.delete(`/job-profiles/competency-types/${id}`);
       notifications.show({
         title: "Deleted",
-        message: "JP competency type deleted",
+        message: "Competency type deleted",
         color: "green",
       });
       onRefresh();
@@ -342,14 +342,14 @@ function ClustersTab({
         );
         notifications.show({
           title: "Updated",
-          message: "JP cluster updated",
+          message: "Cluster updated",
           color: "green",
         });
       } else {
         await api.post("/job-profiles/competency-clusters", payload);
         notifications.show({
           title: "Created",
-          message: "JP cluster created",
+          message: "Cluster created",
           color: "green",
         });
       }
@@ -372,7 +372,7 @@ function ClustersTab({
       await api.delete(`/job-profiles/competency-clusters/${id}`);
       notifications.show({
         title: "Deleted",
-        message: "JP cluster deleted",
+        message: "Cluster deleted",
         color: "green",
       });
       onRefresh();
@@ -637,14 +637,14 @@ function CompetenciesTab({
         await api.patch(`/job-profiles/competency-items/${editingId}`, payload);
         notifications.show({
           title: "Updated",
-          message: "JP competency updated",
+          message: "Competency updated",
           color: "green",
         });
       } else {
         await api.post("/job-profiles/competency-items", payload);
         notifications.show({
           title: "Created",
-          message: "JP competency created",
+          message: "Competency created",
           color: "green",
         });
       }
@@ -667,7 +667,7 @@ function CompetenciesTab({
       await api.delete(`/job-profiles/competency-items/${id}`);
       notifications.show({
         title: "Deleted",
-        message: "JP competency deleted",
+        message: "Competency deleted",
         color: "green",
       });
       onRefresh();
@@ -1004,7 +1004,7 @@ export default function JpCompetencies() {
     } catch {
       notifications.show({
         title: "Error",
-        message: "Failed to fetch JP types",
+        message: "Failed to fetch competency types",
         color: "red",
       });
     } finally {
@@ -1019,7 +1019,7 @@ export default function JpCompetencies() {
     } catch {
       notifications.show({
         title: "Error",
-        message: "Failed to fetch JP clusters",
+        message: "Failed to fetch clusters",
         color: "red",
       });
     } finally {
@@ -1034,7 +1034,7 @@ export default function JpCompetencies() {
     } catch {
       notifications.show({
         title: "Error",
-        message: "Failed to fetch JP competencies",
+        message: "Failed to fetch competencies",
         color: "red",
       });
     } finally {

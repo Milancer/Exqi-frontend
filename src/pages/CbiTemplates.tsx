@@ -29,6 +29,7 @@ import {
   IconTrash,
   IconX,
   IconEye,
+  IconDownload,
 } from "@tabler/icons-react";
 import { useUrlFilters } from "../hooks/useUrlFilters";
 import type {
@@ -45,6 +46,7 @@ import {
   useCompetencies,
   useCompetencyQuestions,
 } from "../services/competencies/hooks";
+import { downloadCbiTemplatePdf } from "../components/CbiTemplatePdf";
 
 const levelColors: Record<number, string> = {
   1: "green",
@@ -360,6 +362,21 @@ export default function CbiTemplates() {
                           onClick={() => openPreview(template)}
                         >
                           <IconEye size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Download PDF">
+                        <ActionIcon
+                          variant="subtle"
+                          color="grape"
+                          onClick={() =>
+                            downloadCbiTemplatePdf(
+                              template,
+                              competencies,
+                              allQuestions,
+                            )
+                          }
+                        >
+                          <IconDownload size={16} />
                         </ActionIcon>
                       </Tooltip>
                       <Tooltip label="Edit">
