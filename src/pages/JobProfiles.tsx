@@ -129,6 +129,9 @@ export default function JobProfiles() {
   const [createReviewerId, setCreateReviewerId] = useState<string | null>(null);
   const [createApproverId, setCreateApproverId] = useState<string | null>(null);
 
+  // Full list of job profiles for "Reports To" dropdown
+  const [profileOptions, setProfileOptions] = useState<{ value: number; label: string }[]>([]);
+
   /* forms */
   const descForm = useForm({
     initialValues: {
@@ -244,6 +247,15 @@ export default function JobProfiles() {
     }
   }, []);
 
+  const fetchProfileOptions = useCallback(async () => {
+    try {
+      const res = await api.get("/job-profiles/dropdown-options");
+      setProfileOptions(res.data || []);
+    } catch {
+      /* silent */
+    }
+  }, []);
+
   // Fetch profiles when filters or pagination change
   useEffect(() => {
     fetchProfiles();
@@ -255,7 +267,8 @@ export default function JobProfiles() {
     fetchCompetencies();
     fetchReferenceData();
     fetchReviewerCandidates();
-  }, [fetchDivisions, fetchCompetencies, fetchReferenceData, fetchReviewerCandidates]);
+    fetchProfileOptions();
+  }, [fetchDivisions, fetchCompetencies, fetchReferenceData, fetchReviewerCandidates, fetchProfileOptions]);
 
   // Reset to page 1 when search or filters change
   const prevSearch = useRef(debouncedSearch);
@@ -740,9 +753,9 @@ export default function JobProfiles() {
                   <Select
                     label="Reports To"
                     placeholder="Select manager profile"
-                    data={profiles.map((p) => ({
-                      value: String(p.job_profile_id),
-                      label: p.job_title,
+                    data={profileOptions.map((p) => ({
+                      value: String(p.value),
+                      label: p.label,
                     }))}
                     value={
                       descForm.values.reports_to
