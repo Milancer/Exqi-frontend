@@ -91,6 +91,10 @@ export async function getQuestions(params?: {
   status?: string;
 }): Promise<PaginatedQuestions> {
   const res = await api.get("/cbi/questions", { params });
+  // Handle both paginated { data, total } and legacy array responses
+  if (Array.isArray(res.data)) {
+    return { data: res.data, total: res.data.length, page: 1, limit: res.data.length };
+  }
   return res.data;
 }
 
@@ -103,6 +107,10 @@ export async function getAllQuestions(): Promise<CompetencyQuestion[]> {
     const res = await api.get("/cbi/questions", {
       params: { page, limit },
     });
+    // Handle both paginated and legacy array responses
+    if (Array.isArray(res.data)) {
+      return res.data;
+    }
     const { data, total } = res.data as PaginatedQuestions;
     all.push(...data);
     if (all.length >= total) break;

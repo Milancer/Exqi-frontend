@@ -627,7 +627,8 @@ function CompetenciesTab({
       const res = await api.get("/cbi/questions", {
         params: { competencyId: compId, limit: 200 },
       });
-      setModalQuestions(res.data.data || res.data);
+      const result = res.data;
+      setModalQuestions(Array.isArray(result) ? result : result.data ?? []);
     } catch {
       /* silently fail — questions are supplementary */
     } finally {
