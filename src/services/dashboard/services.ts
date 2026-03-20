@@ -10,9 +10,10 @@ export async function getDashboardStats() {
       api.get("/interviews"),
     ]);
 
+  const questionsRaw = questions.data;
   return {
     competencies: competencies.data,
-    questions: questions.data,
+    questions: Array.isArray(questionsRaw) ? questionsRaw : questionsRaw.data ?? [],
     templates: templates.data,
     jobProfiles: jobProfiles.data,
     interviews: interviews.data,

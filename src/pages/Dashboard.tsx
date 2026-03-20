@@ -72,8 +72,9 @@ export default function Dashboard() {
 
       const competencies =
         compRes.status === "fulfilled" ? compRes.value.data : [];
-      const questions =
+      const questionsRaw =
         questionsRes.status === "fulfilled" ? questionsRes.value.data : [];
+      const questions = Array.isArray(questionsRaw) ? questionsRaw : questionsRaw.data ?? [];
       const templates =
         templatesRes.status === "fulfilled" ? templatesRes.value.data : [];
       const profiles =
