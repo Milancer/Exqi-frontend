@@ -5,7 +5,6 @@ import type {
   CompetencyCluster,
   Competency,
   CompetencyQuestion,
-  PaginatedQuestions,
 } from "./interfaces";
 
 const KEYS = {

@@ -1402,7 +1402,6 @@ function QuestionsTab({
   const {
     data: questionsData,
     isLoading: loading,
-    refetch: onRefresh,
   } = useCompetencyQuestions({
     page,
     limit: PAGE_SIZE,
