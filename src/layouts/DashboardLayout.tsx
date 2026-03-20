@@ -28,7 +28,7 @@ import {
   IconBuilding,
   IconSettings,
   IconBell,
-  IconUserSearch,
+  // IconUserSearch,  // Recruitment hidden for now
   IconClipboardList,
   IconSitemap,
   IconTable,
