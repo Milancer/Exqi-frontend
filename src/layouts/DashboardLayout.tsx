@@ -101,15 +101,15 @@ export default function DashboardLayout() {
     location.pathname.startsWith(c.path),
   );
 
-  // Recruitment sub-nav items
-  const recruitmentChildren = [
-    { label: "Candidates", path: "/candidates", icon: IconUserSearch },
-    { label: "Interviews", path: "/interviews", icon: IconClipboardList },
-  ];
-
-  const isRecruitmentActive = recruitmentChildren.some(
-    (c) => location.pathname === c.path,
-  );
+  // Recruitment sub-nav items (hidden for now)
+  // const recruitmentChildren = [
+  //   { label: "Candidates", path: "/candidates", icon: IconUserSearch },
+  //   { label: "Interviews", path: "/interviews", icon: IconClipboardList },
+  // ];
+  //
+  // const isRecruitmentActive = recruitmentChildren.some(
+  //   (c) => location.pathname === c.path,
+  // );
 
   return (
     <AppShell

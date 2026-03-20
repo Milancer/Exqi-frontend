@@ -74,7 +74,7 @@ export default function Dashboard() {
         compRes.status === "fulfilled" ? compRes.value.data : [];
       const questionsRaw =
         questionsRes.status === "fulfilled" ? questionsRes.value.data : [];
-      const questions = Array.isArray(questionsRaw) ? questionsRaw : questionsRaw.data ?? [];
+      const _questions = Array.isArray(questionsRaw) ? questionsRaw : questionsRaw.data ?? [];
       const questionsTotal = Array.isArray(questionsRaw) ? questionsRaw.length : questionsRaw.total ?? 0;
       const templates =
         templatesRes.status === "fulfilled" ? templatesRes.value.data : [];
