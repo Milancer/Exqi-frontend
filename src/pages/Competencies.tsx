@@ -20,6 +20,7 @@ import {
   Tabs,
   Loader,
   Switch,
+  Pagination,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -51,6 +52,7 @@ import {
   useCompetencies as useCompetenciesQuery,
   useCompetencyQuestions,
 } from "../services/competencies/hooks";
+import { useQueryClient } from "@tanstack/react-query";
 
 /* ──────────────────────── Empty state helper ─────────────────────── */
 
@@ -622,10 +624,10 @@ function CompetenciesTab({
   const fetchModalQuestions = useCallback(async (compId: number) => {
     setLoadingModalQ(true);
     try {
-      const res = await api.get("/cbi/questions");
-      setModalQuestions(
-        res.data.filter((q: CompetencyQuestion) => q.competency_id === compId),
-      );
+      const res = await api.get("/cbi/questions", {
+        params: { competencyId: compId, limit: 200 },
+      });
+      setModalQuestions(res.data.data || res.data);
     } catch {
       /* silently fail — questions are supplementary */
     } finally {
@@ -1361,23 +1363,20 @@ const levelColors: Record<number, string> = {
 };
 
 function QuestionsTab({
-  questions,
   competencies,
   types,
   clusters,
-  loading,
-  onRefresh,
 }: {
-  questions: CompetencyQuestion[];
   competencies: Competency[];
   types: CompetencyType[];
   clusters: CompetencyCluster[];
-  loading: boolean;
-  onRefresh: () => void;
 }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [modalOpened, setModalOpened] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 25;
 
   // URL-persisted filter state
   const f = useUrlFilters([
@@ -1392,6 +1391,44 @@ function QuestionsTab({
   const fComp = f.get("qComp");
   const fLevel = f.get("qLevel");
   const fStatus = f.get("qStatus");
+
+  // Resolve competencyId from type/cluster/competency cascade
+  // If a specific competency is selected, filter server-side by it
+  // If only type/cluster is selected, find matching competency IDs
+  const resolvedCompetencyId = fComp ? Number(fComp) : undefined;
+
+  // Server-side paginated query
+  const {
+    data: questionsData,
+    isLoading: loading,
+    refetch: onRefresh,
+  } = useCompetencyQuestions({
+    page,
+    limit: PAGE_SIZE,
+    competencyId: resolvedCompetencyId,
+    level: fLevel ? Number(fLevel) : undefined,
+    status: fStatus || undefined,
+  });
+
+  const questions = questionsData?.data ?? [];
+  const total = questionsData?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [fComp, fLevel, fStatus]);
+
+  // Client-side type/cluster filter (since server only filters by competencyId)
+  const filtered = questions.filter((q) => {
+    if (!fType && !fCluster) return true;
+    const comp = competencies.find((c) => c.competency_id === q.competency_id);
+    if (!comp) return false;
+    if (fType && comp.competency_type_id.toString() !== fType) return false;
+    if (fCluster && comp.competency_cluster_id.toString() !== fCluster)
+      return false;
+    return true;
+  });
 
   // Cascading filter options
   const typeOptions = types.map((t) => ({
@@ -1418,28 +1455,6 @@ function QuestionsTab({
     label: c.competency,
   }));
 
-  // Apply all filters
-  const filtered = questions.filter((q) => {
-    if (fComp && q.competency_id.toString() !== fComp) return false;
-    if (fLevel && q.level.toString() !== fLevel) return false;
-    if (fStatus) {
-      const isActive = q.status === "Active";
-      if (fStatus === "Active" && !isActive) return false;
-      if (fStatus === "Inactive" && isActive) return false;
-    }
-    // Type/cluster filter via competency relationship
-    if (fType || fCluster) {
-      const comp = competencies.find(
-        (c) => c.competency_id === q.competency_id,
-      );
-      if (!comp) return false;
-      if (fType && comp.competency_type_id.toString() !== fType) return false;
-      if (fCluster && comp.competency_cluster_id.toString() !== fCluster)
-        return false;
-    }
-    return true;
-  });
-
   const form = useForm({
     initialValues: {
       competency_id: "",
@@ -1456,6 +1471,10 @@ function QuestionsTab({
     value: c.competency_id.toString(),
     label: c.competency,
   }));
+
+  const refreshQuestions = () => {
+    queryClient.invalidateQueries({ queryKey: ["competency-questions"] });
+  };
 
   const openCreate = () => {
     form.reset();
@@ -1497,7 +1516,7 @@ function QuestionsTab({
       setModalOpened(false);
       form.reset();
       setEditingId(null);
-      onRefresh();
+      refreshQuestions();
     } catch (e: any) {
       notifications.show({
         title: "Error",
@@ -1516,7 +1535,7 @@ function QuestionsTab({
         message: "Question deleted",
         color: "green",
       });
-      onRefresh();
+      refreshQuestions();
     } catch (e: any) {
       notifications.show({
         title: "Error",
@@ -1611,7 +1630,7 @@ function QuestionsTab({
             w={120}
           />
           <Badge variant="light" color="gray" size="lg">
-            {filtered.length} / {questions.length}
+            {total} total
           </Badge>
         </Group>
         {loading ? (
@@ -1625,117 +1644,132 @@ function QuestionsTab({
             onAction={openCreate}
           />
         ) : (
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Question</Table.Th>
-                <Table.Th>Competency</Table.Th>
-                <Table.Th>Level</Table.Th>
-                <Table.Th>Active</Table.Th>
-                <Table.Th>Scope</Table.Th>
-                <Table.Th w={100}>Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {filtered.map((q) => {
-                const isGlobal = q.client_id === 1;
-                return (
-                  <Table.Tr key={q.competency_question_id}>
-                    <Table.Td>
-                      <Text size="sm" lineClamp={2}>
-                        {q.question}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge variant="light" color="indigo" size="sm">
-                        {q.competency?.competency || "—"}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge
-                        variant="dot"
-                        color={levelColors[q.level] || "gray"}
-                        size="sm"
-                      >
-                        Level {q.level}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      <Switch
-                        checked={q.status === "Active"}
-                        onChange={async () => {
-                          try {
-                            const newStatus =
-                              q.status === "Active" ? "Inactive" : "Active";
-                            await api.patch(
-                              `/cbi/questions/${q.competency_question_id}`,
-                              { status: newStatus },
-                            );
-                            onRefresh();
-                          } catch {
-                            notifications.show({
-                              title: "Error",
-                              message: "Failed to toggle status",
-                              color: "red",
-                            });
-                          }
-                        }}
-                        size="sm"
-                        color="green"
-                        disabled={isGlobal && user?.role !== "ADMIN"}
-                      />
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge
-                        variant="light"
-                        color={isGlobal ? "blue" : "green"}
-                        size="sm"
-                        leftSection={
-                          isGlobal ? (
-                            <IconWorld size={12} />
-                          ) : (
-                            <IconHome size={12} />
-                          )
-                        }
-                      >
-                        {isGlobal ? "Global" : "Local"}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td>
-                      {isGlobal && user?.role !== "ADMIN" ? (
-                        <Text size="xs" c="dimmed">
-                          Read-only
+          <>
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Question</Table.Th>
+                  <Table.Th>Competency</Table.Th>
+                  <Table.Th>Level</Table.Th>
+                  <Table.Th>Active</Table.Th>
+                  <Table.Th>Scope</Table.Th>
+                  <Table.Th w={100}>Actions</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {filtered.map((q) => {
+                  const isGlobal = q.client_id === 1;
+                  return (
+                    <Table.Tr key={q.competency_question_id}>
+                      <Table.Td>
+                        <Text size="sm" lineClamp={2}>
+                          {q.question}
                         </Text>
-                      ) : (
-                        <Group gap={4} wrap="nowrap">
-                          <Tooltip label="Edit">
-                            <ActionIcon
-                              variant="subtle"
-                              color="blue"
-                              onClick={() => openEdit(q)}
-                            >
-                              <IconEdit size={16} />
-                            </ActionIcon>
-                          </Tooltip>
-                          <Tooltip label="Delete">
-                            <ActionIcon
-                              variant="subtle"
-                              color="red"
-                              onClick={() =>
-                                handleDelete(q.competency_question_id)
-                              }
-                            >
-                              <IconTrash size={16} />
-                            </ActionIcon>
-                          </Tooltip>
-                        </Group>
-                      )}
-                    </Table.Td>
-                  </Table.Tr>
-                );
-              })}
-            </Table.Tbody>
-          </Table>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge variant="light" color="indigo" size="sm">
+                          {q.competency?.competency || "—"}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge
+                          variant="dot"
+                          color={levelColors[q.level] || "gray"}
+                          size="sm"
+                        >
+                          Level {q.level}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Switch
+                          checked={q.status === "Active"}
+                          onChange={async () => {
+                            try {
+                              const newStatus =
+                                q.status === "Active" ? "Inactive" : "Active";
+                              await api.patch(
+                                `/cbi/questions/${q.competency_question_id}`,
+                                { status: newStatus },
+                              );
+                              refreshQuestions();
+                            } catch {
+                              notifications.show({
+                                title: "Error",
+                                message: "Failed to toggle status",
+                                color: "red",
+                              });
+                            }
+                          }}
+                          size="sm"
+                          color="green"
+                          disabled={isGlobal && user?.role !== "ADMIN"}
+                        />
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge
+                          variant="light"
+                          color={isGlobal ? "blue" : "green"}
+                          size="sm"
+                          leftSection={
+                            isGlobal ? (
+                              <IconWorld size={12} />
+                            ) : (
+                              <IconHome size={12} />
+                            )
+                          }
+                        >
+                          {isGlobal ? "Global" : "Local"}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        {isGlobal && user?.role !== "ADMIN" ? (
+                          <Text size="xs" c="dimmed">
+                            Read-only
+                          </Text>
+                        ) : (
+                          <Group gap={4} wrap="nowrap">
+                            <Tooltip label="Edit">
+                              <ActionIcon
+                                variant="subtle"
+                                color="blue"
+                                onClick={() => openEdit(q)}
+                              >
+                                <IconEdit size={16} />
+                              </ActionIcon>
+                            </Tooltip>
+                            <Tooltip label="Delete">
+                              <ActionIcon
+                                variant="subtle"
+                                color="red"
+                                onClick={() =>
+                                  handleDelete(q.competency_question_id)
+                                }
+                              >
+                                <IconTrash size={16} />
+                              </ActionIcon>
+                            </Tooltip>
+                          </Group>
+                        )}
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+            {totalPages > 1 && (
+              <Group justify="center" mt="md">
+                <Pagination
+                  value={page}
+                  onChange={setPage}
+                  total={totalPages}
+                  size="sm"
+                />
+                <Text size="xs" c="dimmed">
+                  Page {page} of {totalPages} ({total} questions)
+                </Text>
+              </Group>
+            )}
+          </>
         )}
       </Paper>
 
@@ -1805,11 +1839,8 @@ export default function Competencies() {
     isLoading: loadingComps,
     refetch: fetchCompetencies,
   } = useCompetenciesQuery();
-  const {
-    data: questions = [],
-    isLoading: loadingQuestions,
-    refetch: fetchQuestions,
-  } = useCompetencyQuestions();
+  // Questions are now fetched inside QuestionsTab with server-side pagination
+  const fetchQuestions = () => {}; // no-op, kept for CompetenciesTab's onRefreshQuestions
 
   // ── URL-persisted state ──
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1938,11 +1969,6 @@ export default function Competencies() {
             leftSection={<IconQuestionMark size={16} />}
           >
             Questions
-            {questions.length > 0 && (
-              <Badge size="xs" variant="filled" color="orange" ml={6}>
-                {questions.length}
-              </Badge>
-            )}
           </Tabs.Tab>
         </Tabs.List>
 
@@ -1982,12 +2008,9 @@ export default function Competencies() {
 
         <Tabs.Panel value="questions" pt="md">
           <QuestionsTab
-            questions={questions}
             competencies={competencies}
             types={types}
             clusters={clusters}
-            loading={loadingQuestions}
-            onRefresh={fetchQuestions}
           />
         </Tabs.Panel>
       </Tabs>

@@ -1,10 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import * as svc from "./services";
 import type {
   CompetencyType,
   CompetencyCluster,
   Competency,
   CompetencyQuestion,
+  PaginatedQuestions,
 } from "./interfaces";
 
 const KEYS = {
@@ -118,8 +119,26 @@ export function useDeleteCompetency() {
 }
 
 /* ── Questions ── */
-export function useCompetencyQuestions() {
-  return useQuery({ queryKey: KEYS.questions, queryFn: svc.getQuestions });
+export function useCompetencyQuestions(params?: {
+  page?: number;
+  limit?: number;
+  competencyId?: number;
+  level?: number;
+  status?: string;
+}) {
+  return useQuery({
+    queryKey: [...KEYS.questions, params],
+    queryFn: () => svc.getQuestions(params),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Fetch all questions (unpaginated) — for CBI template building */
+export function useAllCompetencyQuestions() {
+  return useQuery({
+    queryKey: [...KEYS.questions, "all"],
+    queryFn: svc.getAllQuestions,
+  });
 }
 
 export function useCreateQuestion() {

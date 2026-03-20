@@ -4,6 +4,7 @@ import type {
   CompetencyCluster,
   Competency,
   CompetencyQuestion,
+  PaginatedQuestions,
 } from "./interfaces";
 
 /* ── Types ── */
@@ -82,9 +83,32 @@ export async function deleteCompetency(id: number): Promise<void> {
 }
 
 /* ── Questions ── */
-export async function getQuestions(): Promise<CompetencyQuestion[]> {
-  const res = await api.get("/cbi/questions");
+export async function getQuestions(params?: {
+  page?: number;
+  limit?: number;
+  competencyId?: number;
+  level?: number;
+  status?: string;
+}): Promise<PaginatedQuestions> {
+  const res = await api.get("/cbi/questions", { params });
   return res.data;
+}
+
+/** Fetch ALL questions (unpaginated) — used by CBI templates */
+export async function getAllQuestions(): Promise<CompetencyQuestion[]> {
+  const all: CompetencyQuestion[] = [];
+  let page = 1;
+  const limit = 200;
+  while (true) {
+    const res = await api.get("/cbi/questions", {
+      params: { page, limit },
+    });
+    const { data, total } = res.data as PaginatedQuestions;
+    all.push(...data);
+    if (all.length >= total) break;
+    page++;
+  }
+  return all;
 }
 
 export async function createQuestion(

@@ -44,7 +44,7 @@ import {
 } from "../services/cbi/hooks";
 import {
   useCompetencies,
-  useCompetencyQuestions,
+  useAllCompetencyQuestions,
 } from "../services/competencies/hooks";
 import { useClients } from "../services/clients/hooks";
 import { useAuth } from "../contexts/AuthContext";
@@ -65,7 +65,7 @@ export default function CbiTemplates() {
   const clientLogo = clients.find((c) => c.id === user?.clientId)?.logo || null;
   const { data: templates = [], isLoading: loading } = useCbiTemplates();
   const { data: competencies = [] } = useCompetencies();
-  const { data: allQuestions = [] } = useCompetencyQuestions();
+  const { data: allQuestions = [] } = useAllCompetencyQuestions();
   const createMutation = useCreateTemplate();
   const updateMutation = useUpdateTemplate();
   const deleteMutation = useDeleteTemplate();

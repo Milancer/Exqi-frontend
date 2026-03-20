@@ -37,3 +37,10 @@ export interface CompetencyQuestion {
   client_id?: number;
   competency?: { competency: string };
 }
+
+export interface PaginatedQuestions {
+  data: CompetencyQuestion[];
+  total: number;
+  page: number;
+  limit: number;
+}
