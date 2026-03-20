@@ -75,6 +75,7 @@ export default function Dashboard() {
       const questionsRaw =
         questionsRes.status === "fulfilled" ? questionsRes.value.data : [];
       const questions = Array.isArray(questionsRaw) ? questionsRaw : questionsRaw.data ?? [];
+      const questionsTotal = Array.isArray(questionsRaw) ? questionsRaw.length : questionsRaw.total ?? 0;
       const templates =
         templatesRes.status === "fulfilled" ? templatesRes.value.data : [];
       const profiles =
@@ -126,7 +127,7 @@ export default function Dashboard() {
       setStats({
         competencies: competencies.length,
         competencyTypes: typeSet.size,
-        questions: questions.length,
+        questions: questionsTotal,
         templates: templates.length,
         jobProfiles: profiles.length,
         jobProfilesByStatus,

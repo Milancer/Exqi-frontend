@@ -65,11 +65,14 @@ export default function DashboardLayout() {
 
   const initials = user?.email ? user.email.charAt(0).toUpperCase() : "?";
   const isAdmin = user?.role === "ADMIN";
+  const isOfficeUser = user?.role === "OFFICE_USER";
   const userModules = user?.modules || [];
 
   // Check if user has access to modules
   const hasJobProfileModule = isAdmin || userModules.includes("Job Profile");
   const hasCbiModule = isAdmin || userModules.includes("Competency Based Interview");
+  // Admin section visible to ADMIN, OFFICE_MANAGER, and OFFICE_REVIEWER (not OFFICE_USER)
+  const canSeeAdmin = !isOfficeUser;
 
   // CBI sub-nav items (only if has CBI module)
   const cbiChildren = [
@@ -252,49 +255,51 @@ export default function DashboardLayout() {
             variant="subtle"
           />
 
-          {/* Admin parent with sub-nav */}
-          <NavLink
-            label="Admin"
-            leftSection={<IconSettings size="1.1rem" stroke={1.5} />}
-            defaultOpened={isAdminActive}
-            mb={4}
-            style={() => ({
-              borderRadius: "var(--mantine-radius-md)",
-              color: isAdminActive ? "#fff" : "rgba(255,255,255,0.75)",
-              backgroundColor: isAdminActive
-                ? "rgba(255,255,255,0.08)"
-                : "transparent",
-            })}
-            variant="subtle"
-          >
-            {adminChildren.map((child) => (
-              <NavLink
-                key={child.path}
-                label={child.label}
-                leftSection={
-                  child.icon ? <child.icon size="0.9rem" stroke={1.5} /> : null
-                }
-                active={location.pathname === child.path}
-                onClick={() => {
-                  navigate(child.path);
-                  if (opened) toggle();
-                }}
-                mb={2}
-                style={() => ({
-                  borderRadius: "var(--mantine-radius-md)",
-                  color:
-                    location.pathname === child.path
-                      ? "#fff"
-                      : "rgba(255,255,255,0.6)",
-                  backgroundColor:
-                    location.pathname === child.path
-                      ? "rgba(255,255,255,0.15)"
-                      : "transparent",
-                })}
-                variant="subtle"
-              />
-            ))}
-          </NavLink>
+          {/* Admin parent with sub-nav — hidden for OFFICE_USER */}
+          {canSeeAdmin && (
+            <NavLink
+              label="Admin"
+              leftSection={<IconSettings size="1.1rem" stroke={1.5} />}
+              defaultOpened={isAdminActive}
+              mb={4}
+              style={() => ({
+                borderRadius: "var(--mantine-radius-md)",
+                color: isAdminActive ? "#fff" : "rgba(255,255,255,0.75)",
+                backgroundColor: isAdminActive
+                  ? "rgba(255,255,255,0.08)"
+                  : "transparent",
+              })}
+              variant="subtle"
+            >
+              {adminChildren.map((child) => (
+                <NavLink
+                  key={child.path}
+                  label={child.label}
+                  leftSection={
+                    child.icon ? <child.icon size="0.9rem" stroke={1.5} /> : null
+                  }
+                  active={location.pathname === child.path}
+                  onClick={() => {
+                    navigate(child.path);
+                    if (opened) toggle();
+                  }}
+                  mb={2}
+                  style={() => ({
+                    borderRadius: "var(--mantine-radius-md)",
+                    color:
+                      location.pathname === child.path
+                        ? "#fff"
+                        : "rgba(255,255,255,0.6)",
+                    backgroundColor:
+                      location.pathname === child.path
+                        ? "rgba(255,255,255,0.15)"
+                        : "transparent",
+                  })}
+                  variant="subtle"
+                />
+              ))}
+            </NavLink>
+          )}
 
           {/* Role Architecture parent with sub-nav - only if has module */}
           {hasJobProfileModule && (
@@ -384,8 +389,8 @@ export default function DashboardLayout() {
             </NavLink>
           )}
 
-          {/* Recruitment parent with sub-nav */}
-          <NavLink
+          {/* Recruitment parent with sub-nav — hidden for now */}
+          {/* <NavLink
             label="Recruitment"
             leftSection={<IconUserSearch size="1.1rem" stroke={1.5} />}
             defaultOpened={isRecruitmentActive}
@@ -424,7 +429,7 @@ export default function DashboardLayout() {
                 variant="subtle"
               />
             ))}
-          </NavLink>
+          </NavLink> */}
         </Box>
 
         <Divider my="sm" color="rgba(255,255,255,0.15)" />
