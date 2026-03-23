@@ -16,10 +16,12 @@ import {
   ActionIcon,
   Loader,
   Center,
+  Tooltip,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
-import { IconPlus, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react";
+import { IconPlus, IconEdit, IconTrash, IconUsers, IconMail } from "@tabler/icons-react";
+import api from "../services/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
 import type { User } from "../services/users/interfaces";
 import {
@@ -159,6 +161,23 @@ export default function Users() {
     }
   };
 
+  const handleResendInvite = async (id: number) => {
+    try {
+      await api.post(`/users/${id}/resend-invite`);
+      notifications.show({
+        title: "Success",
+        message: "Invite resent successfully",
+        color: "green",
+      });
+    } catch (e: any) {
+      notifications.show({
+        title: "Error",
+        message: e.response?.data?.message || "Failed to resend invite",
+        color: "red",
+      });
+    }
+  };
+
   const clientOptions = clients.map((c) => ({
     value: c.id.toString(),
     label: c.name,
@@ -279,7 +298,7 @@ export default function Users() {
                 <Table.Th>Role</Table.Th>
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Client</Table.Th>
-                <Table.Th style={{ width: 100 }}>Actions</Table.Th>
+                <Table.Th style={{ width: 140 }}>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -310,20 +329,33 @@ export default function Users() {
                   <Table.Td>{u.client?.name || `#${u.clientId}`}</Table.Td>
                   <Table.Td>
                     <Group gap={4}>
-                      <ActionIcon
-                        variant="subtle"
-                        color="blue"
-                        onClick={() => openEdit(u)}
-                      >
-                        <IconEdit size={16} />
-                      </ActionIcon>
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        onClick={() => handleDelete(u.id)}
-                      >
-                        <IconTrash size={16} />
-                      </ActionIcon>
+                      <Tooltip label="Resend Invite">
+                        <ActionIcon
+                          variant="subtle"
+                          color="teal"
+                          onClick={() => handleResendInvite(u.id)}
+                        >
+                          <IconMail size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Edit">
+                        <ActionIcon
+                          variant="subtle"
+                          color="blue"
+                          onClick={() => openEdit(u)}
+                        >
+                          <IconEdit size={16} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="Delete">
+                        <ActionIcon
+                          variant="subtle"
+                          color="red"
+                          onClick={() => handleDelete(u.id)}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </Tooltip>
                     </Group>
                   </Table.Td>
                 </Table.Tr>

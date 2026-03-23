@@ -65,14 +65,14 @@ export default function DashboardLayout() {
 
   const initials = user?.email ? user.email.charAt(0).toUpperCase() : "?";
   const isAdmin = user?.role === "ADMIN";
-  const isOfficeUser = user?.role === "OFFICE_USER";
   const userModules = user?.modules || [];
 
   // Check if user has access to modules
   const hasJobProfileModule = isAdmin || userModules.includes("Job Profile");
   const hasCbiModule = isAdmin || userModules.includes("Competency Based Interview");
-  // Admin section visible to ADMIN, OFFICE_MANAGER, and OFFICE_REVIEWER (not OFFICE_USER)
-  const canSeeAdmin = !isOfficeUser;
+  // Admin section visible to ADMIN and OFFICE_MANAGER only
+  const isOfficeManager = user?.role === "OFFICE_MANAGER";
+  const canSeeAdmin = isAdmin || isOfficeManager;
 
   // CBI sub-nav items (only if has CBI module)
   const cbiChildren = [

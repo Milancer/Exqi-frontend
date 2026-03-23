@@ -31,6 +31,14 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
+interface DashboardStats {
+  competencies: number;
+  questions: number;
+  templates: number;
+  jobProfiles: number;
+  interviews: number;
+}
+
 interface Stats {
   competencies: number;
   competencyTypes: number;
@@ -61,83 +69,22 @@ export default function Dashboard() {
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
-      const [compRes, questionsRes, templatesRes, profilesRes, interviewsRes] =
-        await Promise.allSettled([
-          api.get("/competencies"),
-          api.get("/cbi/questions"),
-          api.get("/cbi/templates"),
-          api.get("/job-profiles"),
-          api.get("/interviews"),
-        ]);
-
-      const competencies =
-        compRes.status === "fulfilled" ? compRes.value.data : [];
-      const questionsRaw =
-        questionsRes.status === "fulfilled" ? questionsRes.value.data : [];
-      const questionsTotal = Array.isArray(questionsRaw) ? questionsRaw.length : questionsRaw.total ?? 0;
-      const templates =
-        templatesRes.status === "fulfilled" ? templatesRes.value.data : [];
-      const profiles =
-        profilesRes.status === "fulfilled" ? profilesRes.value.data : [];
-      const interviews =
-        interviewsRes.status === "fulfilled" ? interviewsRes.value.data : [];
-
-      // Count unique competency types
-      const typeSet = new Set(
-        competencies
-          .map((c: any) => c.competencyType?.competency_type)
-          .filter(Boolean),
-      );
-
-      // Group profiles by status
-      const statusMap: Record<string, number> = {};
-      profiles.forEach((p: any) => {
-        statusMap[p.status || "Draft"] =
-          (statusMap[p.status || "Draft"] || 0) + 1;
-      });
-      const jobProfilesByStatus = Object.entries(statusMap).map(
-        ([status, count]) => ({ status, count }),
-      );
-
-      // Recent profiles (last 5)
-      const recentProfiles = profiles
-        .slice(-5)
-        .reverse()
-        .map((p: any) => ({
-          job_profile_id: p.job_profile_id,
-          job_title: p.job_title,
-          status: p.status || "Draft",
-          division: p.division || "",
-        }));
-
-      // Calculate interview stats
-      const completedInterviews = interviews.filter(
-        (i: any) => i.status === "Completed",
-      );
-      const totalScoreSum = completedInterviews.reduce(
-        (sum: number, i: any) => sum + (i.percentage || 0),
-        0,
-      );
-      const avgScore =
-        completedInterviews.length > 0
-          ? Math.round(totalScoreSum / completedInterviews.length)
-          : 0;
+      const res = await api.get<DashboardStats>("/dashboard/stats");
+      const data = res.data;
 
       setStats({
-        competencies: competencies.length,
-        competencyTypes: typeSet.size,
-        questions: questionsTotal,
-        templates: templates.length,
-        jobProfiles: profiles.length,
-        jobProfilesByStatus,
-        recentProfiles,
+        competencies: data.competencies,
+        competencyTypes: 0,
+        questions: data.questions,
+        templates: data.templates,
+        jobProfiles: data.jobProfiles,
+        jobProfilesByStatus: [],
+        recentProfiles: [],
         interviews: {
-          total: interviews.length,
-          pending: interviews.filter(
-            (i: any) => i.status === "Pending" || i.status === "InProgress",
-          ).length,
-          completed: completedInterviews.length,
-          avgScore,
+          total: data.interviews,
+          pending: 0,
+          completed: 0,
+          avgScore: 0,
         },
       });
     } catch {
