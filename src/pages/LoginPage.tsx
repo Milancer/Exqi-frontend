@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import expLogo from "../assets/explogo.png";
+import expLogo from "../assets/logo.svg";
 import {
   Paper,
   TextInput,
@@ -116,8 +116,8 @@ export default function LoginPage() {
                 alt="EXQi"
                 style={{ height: 64, width: 'auto' }}
               />
-              <Text c="dimmed" size="sm" ta="center">
-                Competency & Interview Management
+              <Text fw={500} size="sm" ta="center" c="dark">
+                Experttech Quantum Integrator (EXQi)
               </Text>
             </Stack>
 

@@ -315,8 +315,9 @@ export default function CbiTemplates() {
               <Table.Tr>
                 <Table.Th>Template</Table.Th>
                 <Table.Th>Competencies</Table.Th>
-                <Table.Th w={100}>Questions</Table.Th>
-                <Table.Th w={120}>Actions</Table.Th>
+                <Table.Th w={100} ta="center">Questions</Table.Th>
+                <Table.Th w={120} ta="center">Date Modified</Table.Th>
+                <Table.Th w={120} ta="center">Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -353,36 +354,27 @@ export default function CbiTemplates() {
                       )}
                     </Group>
                   </Table.Td>
-                  <Table.Td>
+                  <Table.Td ta="center">
                     <Badge variant="light" color="teal" size="sm">
                       {dynamicQuestionCount(template)}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>
-                    <Group gap={4} wrap="nowrap">
-                      <Tooltip label="Preview Questions">
+                  <Table.Td ta="center">
+                    <Text size="xs" c="dimmed">
+                      {template.updated_at
+                        ? new Date(template.updated_at).toLocaleDateString()
+                        : "—"}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td ta="center">
+                    <Group gap={4} wrap="nowrap" justify="center">
+                      <Tooltip label="Preview & Download">
                         <ActionIcon
                           variant="subtle"
                           color="teal"
                           onClick={() => openPreview(template)}
                         >
                           <IconEye size={16} />
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="Download PDF">
-                        <ActionIcon
-                          variant="subtle"
-                          color="grape"
-                          onClick={() =>
-                            downloadCbiTemplatePdf(
-                              template,
-                              competencies,
-                              allQuestions,
-                              clientLogo,
-                            )
-                          }
-                        >
-                          <IconDownload size={16} />
                         </ActionIcon>
                       </Tooltip>
                       <Tooltip label="Edit">
@@ -537,6 +529,23 @@ export default function CbiTemplates() {
       >
         {previewTemplate && (
           <>
+            <Group justify="flex-end" mb="md">
+              <Button
+                leftSection={<IconDownload size={16} />}
+                variant="gradient"
+                gradient={{ from: "blue", to: "cyan", deg: 135 }}
+                onClick={() =>
+                  downloadCbiTemplatePdf(
+                    previewTemplate,
+                    competencies,
+                    allQuestions,
+                    clientLogo,
+                  )
+                }
+              >
+                Download PDF
+              </Button>
+            </Group>
             {(!previewTemplate.competencies ||
               previewTemplate.competencies.length === 0) && (
               <Text c="dimmed" ta="center" py="lg">

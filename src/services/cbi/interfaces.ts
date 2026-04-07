@@ -10,4 +10,5 @@ export interface CbiTemplate {
   competencies: CompetencySelection[];
   questions: number[];
   status: string;
+  updated_at?: string;
 }

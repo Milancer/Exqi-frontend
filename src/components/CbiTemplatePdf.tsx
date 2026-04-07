@@ -8,6 +8,9 @@ import {
   pdf,
 } from "@react-pdf/renderer";
 import { notifications } from "@mantine/notifications";
+// NOTE: @react-pdf/renderer has limited SVG support. If the logo does not
+// render correctly, replace with a PNG version (e.g. logo.png).
+import exqiLogo from "../assets/logo.svg";
 import type {
   Competency,
   CompetencyQuestion,
@@ -110,6 +113,7 @@ const s = StyleSheet.create({
     marginTop: 16,
     marginBottom: 10,
     borderRadius: 3,
+    minPresenceAhead: 80,
   },
 
   /* ── Question ── */
@@ -133,14 +137,27 @@ const s = StyleSheet.create({
   /* ── Footer ── */
   footer: {
     position: "absolute",
-    bottom: 25,
-    left: 40,
-    right: 40,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    bottom: 20,
+    left: 30,
+    right: 30,
     borderTopWidth: 1,
     borderTopColor: "#ddd",
     paddingTop: 6,
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  footerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  footerLogo: {
+    width: 60,
+    height: 25,
+    objectFit: "contain" as const,
   },
   footerText: {
     fontSize: 7,
@@ -216,7 +233,7 @@ function CbiTemplatePdfDoc({
           const groupQuestions = group.questions.map((q) => {
             globalIdx += 1;
             return (
-              <View key={q.competency_question_id} style={s.questionRow}>
+              <View key={q.competency_question_id} style={s.questionRow} wrap={false}>
                 <PDFText style={s.questionText}>
                   {globalIdx}. {q.question}
                 </PDFText>
@@ -237,11 +254,13 @@ function CbiTemplatePdfDoc({
 
         {/* ── Footer ── */}
         <View style={s.footer} fixed>
-          <PDFText style={s.footerText}>
-            {template.template_name} — Competency-Based Interview
-            Questionnaire
-          </PDFText>
-          <PDFText style={s.footerText}>Confidential</PDFText>
+          <View style={s.footerRow}>
+            <View style={s.footerLeft}>
+              <PDFImage src={exqiLogo} style={s.footerLogo} />
+              <PDFText style={s.footerText}>Powered by EXQi</PDFText>
+            </View>
+            <PDFText style={s.footerText}>Confidential</PDFText>
+          </View>
         </View>
       </Page>
     </Document>

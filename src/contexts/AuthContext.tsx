@@ -14,6 +14,7 @@ interface User {
   role: string;
   clientId: number;
   modules: string[];
+  hasSignature: boolean;
 }
 
 interface AuthContextType {
@@ -22,6 +23,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  setSignatureComplete: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,9 +73,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const setSignatureComplete = () => {
+    if (!user) return;
+    const updated = { ...user, hasSignature: true };
+    setUser(updated);
+    localStorage.setItem("user", JSON.stringify(updated));
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, login, logout, isLoading }}
+      value={{ user, isAuthenticated: !!user, login, logout, isLoading, setSignatureComplete }}
     >
       {children}
     </AuthContext.Provider>

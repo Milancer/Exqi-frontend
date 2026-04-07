@@ -17,6 +17,7 @@ import {
   Center,
   Divider,
   Select,
+  Image,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -25,6 +26,8 @@ import {
   IconEdit,
   IconTrash,
   IconBuilding,
+  IconUpload,
+  IconX,
 } from "@tabler/icons-react";
 import { useUrlFilters } from "../hooks/useUrlFilters";
 import type { Client } from "../services/clients/interfaces";
@@ -67,6 +70,7 @@ export default function Clients() {
       hrContactPhoneNumber: "",
       hrContactEmail: "",
       modules: [] as string[],
+      logo: "",
     },
     validate: {
       name: (v) => (v.trim() ? null : "Name is required"),
@@ -105,6 +109,7 @@ export default function Clients() {
       hrContactPhoneNumber: c.hrContactPhoneNumber,
       hrContactEmail: c.hrContactEmail,
       modules: c.modules || [],
+      logo: c.logo || "",
     });
     setEditingId(c.id);
     setModalOpened(true);
@@ -154,6 +159,22 @@ export default function Clients() {
         color: "red",
       });
     }
+  };
+
+  const [dragging, setDragging] = useState(false);
+
+  const processLogoFile = (file: File) => {
+    if (!file.type.match(/^image\/(png|jpeg|svg\+xml)$/)) {
+      notifications.show({ title: "Error", message: "Only PNG, JPG, or SVG images are accepted", color: "red" });
+      return;
+    }
+    if (file.size > 500 * 1024) {
+      notifications.show({ title: "Error", message: "Logo must be under 500KB", color: "red" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => form.setFieldValue("logo", reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   // Derived filter options from data
@@ -270,7 +291,22 @@ export default function Clients() {
             <Table.Tbody>
               {filtered.map((c) => (
                 <Table.Tr key={c.id}>
-                  <Table.Td fw={500}>{c.name}</Table.Td>
+                  <Table.Td fw={500}>
+                    <Group gap="xs" wrap="nowrap">
+                      {c.logo && (
+                        <Image
+                          src={c.logo}
+                          alt={c.name}
+                          w={28}
+                          h={28}
+                          radius="sm"
+                          fit="contain"
+                          style={{ flexShrink: 0 }}
+                        />
+                      )}
+                      {c.name}
+                    </Group>
+                  </Table.Td>
                   <Table.Td>{c.industry}</Table.Td>
                   <Table.Td>{c.division}</Table.Td>
                   <Table.Td>
@@ -318,9 +354,81 @@ export default function Clients() {
       >
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack>
-            <Text fw={600} size="sm" c="dimmed">
-              Company Details
-            </Text>
+            <Box
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                const file = e.dataTransfer.files[0];
+                if (file) processLogoFile(file);
+              }}
+              onClick={() => {
+                if (!form.values.logo) {
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = "image/png,image/jpeg,image/svg+xml";
+                  input.onchange = () => { if (input.files?.[0]) processLogoFile(input.files[0]); };
+                  input.click();
+                }
+              }}
+              p="lg"
+              style={{
+                border: `2px dashed ${dragging ? "var(--mantine-color-blue-5)" : form.values.logo ? "var(--mantine-color-default-border)" : "var(--mantine-color-gray-4)"}`,
+                borderRadius: "var(--mantine-radius-md)",
+                backgroundColor: dragging ? "var(--mantine-color-blue-0)" : form.values.logo ? "transparent" : "var(--mantine-color-gray-0)",
+                cursor: form.values.logo ? "default" : "pointer",
+                textAlign: "center",
+                transition: "all 150ms ease",
+              }}
+            >
+              {form.values.logo ? (
+                <Stack align="center" gap="sm">
+                  <Image
+                    src={form.values.logo}
+                    alt="Client logo"
+                    maw={200}
+                    mah={120}
+                    fit="contain"
+                  />
+                  <Group gap="xs">
+                    <Button
+                      variant="light"
+                      size="xs"
+                      leftSection={<IconUpload size={14} />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/png,image/jpeg,image/svg+xml";
+                        input.onchange = () => { if (input.files?.[0]) processLogoFile(input.files[0]); };
+                        input.click();
+                      }}
+                    >
+                      Replace
+                    </Button>
+                    <Button
+                      variant="light"
+                      color="red"
+                      size="xs"
+                      leftSection={<IconX size={14} />}
+                      onClick={(e) => { e.stopPropagation(); form.setFieldValue("logo", ""); }}
+                    >
+                      Remove
+                    </Button>
+                  </Group>
+                </Stack>
+              ) : (
+                <Stack align="center" gap="xs" py="md">
+                  <IconUpload size={32} stroke={1.5} color="var(--mantine-color-gray-5)" />
+                  <Text size="sm" fw={500}>Drag & drop a logo here, or click to browse</Text>
+                  <Text size="xs" c="dimmed">PNG, JPG, or SVG — max 500KB</Text>
+                </Stack>
+              )}
+            </Box>
+
+            <Divider my="xs" label="Company Details" labelPosition="left" />
+
             <Group grow>
               <TextInput
                 label="Company Name"

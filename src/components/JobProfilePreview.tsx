@@ -15,6 +15,9 @@ import {
 } from "@mantine/core";
 import { IconDownload, IconX } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
+// NOTE: @react-pdf/renderer has limited SVG support. If the logo does not
+// render correctly, replace with a PNG version (e.g. logo.png).
+import exqiLogo from "../assets/logo.svg";
 import {
   Document,
   Page,
@@ -37,6 +40,7 @@ interface JobProfilePreviewProps {
 const pdfStyles = StyleSheet.create({
   page: {
     padding: 40,
+    paddingBottom: 60,
     fontSize: 10,
     fontFamily: "Helvetica",
   },
@@ -58,6 +62,7 @@ const pdfStyles = StyleSheet.create({
   },
   section: {
     marginBottom: 15,
+    break: "avoid-page" as const,
   },
   sectionHeader: {
     backgroundColor: "#1a365d",
@@ -66,6 +71,7 @@ const pdfStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
     marginBottom: 8,
+    minPresenceAhead: 50,
   },
   fieldRow: {
     flexDirection: "row",
@@ -90,6 +96,7 @@ const pdfStyles = StyleSheet.create({
     backgroundColor: "#e2e8f0",
     fontWeight: "bold",
     fontSize: 9,
+    minPresenceAhead: 40,
   },
   tableRow: {
     flexDirection: "row",
@@ -120,11 +127,30 @@ const pdfStyles = StyleSheet.create({
   },
   footer: {
     position: "absolute",
-    bottom: 30,
-    left: 40,
-    right: 40,
-    textAlign: "center",
-    fontSize: 8,
+    bottom: 20,
+    left: 30,
+    right: 30,
+    borderTopWidth: 1,
+    borderTopColor: "#ddd",
+    paddingTop: 6,
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  footerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  footerLogo: {
+    width: 60,
+    height: 25,
+    objectFit: "contain" as const,
+  },
+  footerText: {
+    fontSize: 7,
     color: "#999",
   },
 });
@@ -213,7 +239,7 @@ const JobProfilePDF = ({
                 </PDFText>
               </View>
               {profile.competencies.map((comp, idx) => (
-                <View key={idx} style={pdfStyles.tableRow}>
+                <View key={idx} style={pdfStyles.tableRow} wrap={false}>
                   <PDFText style={[pdfStyles.tableCell, { width: "50%" }]}>
                     {comp.jpCompetency?.competency || "N/A"}
                   </PDFText>
@@ -264,7 +290,7 @@ const JobProfilePDF = ({
                 </PDFText>
               </View>
               {profile.skills.map((skill, idx) => (
-                <View key={idx} style={pdfStyles.tableRow}>
+                <View key={idx} style={pdfStyles.tableRow} wrap={false}>
                   <PDFText style={[pdfStyles.tableCell, { width: "60%" }]}>
                     {skill.skill_name || skill.skill?.skill || "-"}
                   </PDFText>
@@ -364,7 +390,7 @@ const JobProfilePDF = ({
                 </PDFText>
               </View>
               {approvedApprovers.map((app, idx) => (
-                <View key={idx} style={pdfStyles.tableRow}>
+                <View key={idx} style={pdfStyles.tableRow} wrap={false}>
                   <PDFText style={[pdfStyles.tableCell, { width: "18%" }]}>
                     {app.type === "reviewer" ? "Reviewer" : "Approver"}
                   </PDFText>
@@ -395,9 +421,17 @@ const JobProfilePDF = ({
         )}
 
         {/* Footer */}
-        <PDFText style={pdfStyles.footer}>
-          Generated from EXQi - {new Date().toLocaleDateString()}
-        </PDFText>
+        <View style={pdfStyles.footer} fixed>
+          <View style={pdfStyles.footerRow}>
+            <View style={pdfStyles.footerLeft}>
+              <PDFImage src={exqiLogo} style={pdfStyles.footerLogo} />
+              <PDFText style={pdfStyles.footerText}>Powered by EXQi</PDFText>
+            </View>
+            <PDFText style={pdfStyles.footerText}>
+              Generated from EXQi - {new Date().toLocaleDateString()}
+            </PDFText>
+          </View>
+        </View>
       </Page>
     </Document>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import expLogo from "../assets/explogo.png";
+import expLogo from "../assets/logo.svg";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import SignatureSetup from "../components/SignatureSetup";
 import {
   AppShell,
   Burger,
@@ -48,7 +49,7 @@ export default function DashboardLayout() {
     navigate("/login");
   };
 
-  // Poll for unread notifications every 30 seconds
+  // Poll for unread notifications every 60 seconds
   useEffect(() => {
     const fetchCount = async () => {
       try {
@@ -59,7 +60,7 @@ export default function DashboardLayout() {
       }
     };
     fetchCount();
-    const interval = setInterval(fetchCount, 30000);
+    const interval = setInterval(fetchCount, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -112,6 +113,8 @@ export default function DashboardLayout() {
   // );
 
   return (
+    <>
+    <SignatureSetup />
     <AppShell
       header={{ height: 60 }}
       navbar={{
@@ -459,5 +462,6 @@ export default function DashboardLayout() {
         <Outlet />
       </AppShell.Main>
     </AppShell>
+    </>
   );
 }
