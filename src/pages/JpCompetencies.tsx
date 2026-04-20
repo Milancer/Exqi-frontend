@@ -196,7 +196,7 @@ function TypesTab({
               <Table.Tr>
                 <Table.Th>Type</Table.Th>
                 <Table.Th>Status</Table.Th>
-                <Table.Th w={100}>Actions</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -441,7 +441,7 @@ function ClustersTab({
                 <Table.Th>Type</Table.Th>
                 <Table.Th>Description</Table.Th>
                 <Table.Th>Status</Table.Th>
-                <Table.Th w={100}>Actions</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -779,7 +779,7 @@ function CompetenciesTab({
                 <Table.Th>Cluster</Table.Th>
                 <Table.Th>Description</Table.Th>
                 <Table.Th>Status</Table.Th>
-                <Table.Th w={100}>Actions</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>

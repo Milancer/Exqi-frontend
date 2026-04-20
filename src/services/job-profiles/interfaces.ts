@@ -41,7 +41,12 @@ export interface JPSkill {
   job_profile_skill_id: number;
   skill_id?: number;
   skill_name?: string;
-  skill?: { skill_id: number; skill: string };
+  skill?: {
+    skill_id: number;
+    skill: string;
+    description?: string;
+    indicators?: string | string[] | null;
+  };
   level: number;
   is_critical: boolean;
   status: string;

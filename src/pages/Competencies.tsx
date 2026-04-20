@@ -205,7 +205,7 @@ function TypesTab({
                 <Table.Th>Type Name</Table.Th>
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Scope</Table.Th>
-                <Table.Th w={100}>Actions</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -464,7 +464,7 @@ function ClustersTab({
                 <Table.Th>Description</Table.Th>
                 <Table.Th>Type</Table.Th>
                 <Table.Th>Scope</Table.Th>
-                <Table.Th w={100}>Actions</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -862,7 +862,7 @@ function CompetenciesTab({
                 <Table.Th>Type</Table.Th>
                 <Table.Th>Cluster</Table.Th>
                 <Table.Th>Scope</Table.Th>
-                <Table.Th w={100}>Actions</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -1653,7 +1653,7 @@ function QuestionsTab({
                   <Table.Th>Level</Table.Th>
                   <Table.Th>Active</Table.Th>
                   <Table.Th>Scope</Table.Th>
-                  <Table.Th w={100}>Actions</Table.Th>
+                  <Table.Th>Actions</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>

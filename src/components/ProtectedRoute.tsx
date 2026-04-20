@@ -77,6 +77,12 @@ export function ModuleRoute({
     return <>{children}</>;
   }
 
+  // OFFICE_REVIEWER is locked down to Job Profile module only.
+  if (user?.role === "OFFICE_REVIEWER") {
+    if (module === "Job Profile") return <>{children}</>;
+    return <Navigate to="/job-profiles" replace />;
+  }
+
   // Check if user's client has the required module
   const hasModule = user?.modules?.includes(module);
   if (!hasModule) {

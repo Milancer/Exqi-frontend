@@ -64,6 +64,28 @@ const statusColors: Record<string, string> = {
    JOB PROFILE DETAIL PAGE
    ═══════════════════════════════════════════════════════════════════ */
 
+/**
+ * Skill indicators are stored as a JSON column. Depending on driver/serialization
+ * they can come back as a real array, a JSON-encoded string, or null.
+ */
+function parseIndicators(raw: unknown): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map(String);
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed.map(String);
+      return [String(parsed)];
+    } catch {
+      // Not JSON — treat as a single indicator
+      return [trimmed];
+    }
+  }
+  return [];
+}
+
 export default function JobProfileDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -107,6 +129,8 @@ export default function JobProfileDetail() {
   const [approverCandidates, setApproverCandidates] = useState<JPReviewer[]>([]);
   const [selectedReviewerId, setSelectedReviewerId] = useState<string | null>(null);
   const [selectedApproverId, setSelectedApproverId] = useState<string | null>(null);
+  const [selectedReviewerEmail, setSelectedReviewerEmail] = useState("");
+  const [selectedApproverEmail, setSelectedApproverEmail] = useState("");
   const [reviewConfirmOpen, setReviewConfirmOpen] = useState(false);
   const [reviewAction, setReviewAction] = useState<"approve" | "reject">("approve");
   const [reviewActionType, setReviewActionType] = useState<"reviewer" | "approver">("reviewer");
@@ -481,15 +505,20 @@ export default function JobProfileDetail() {
 
   // Reviewer / Approval handlers
   const handleSubmitForReview = async () => {
-    if (!profile || !selectedReviewerId || !selectedApproverId) return;
+    if (!profile) return;
+    const reviewerProvided = selectedReviewerId || selectedReviewerEmail.trim();
+    const approverProvided = selectedApproverId || selectedApproverEmail.trim();
+    if (!reviewerProvided || !approverProvided) return;
     try {
       setSaving(true);
+      const payload: Record<string, unknown> = {};
+      if (selectedReviewerId) payload.reviewer_id = Number(selectedReviewerId);
+      else payload.reviewer_email = selectedReviewerEmail.trim();
+      if (selectedApproverId) payload.approver_id = Number(selectedApproverId);
+      else payload.approver_email = selectedApproverEmail.trim();
       await api.post(
         `/job-profiles/${profile.job_profile_id}/submit-for-review`,
-        {
-          reviewer_id: Number(selectedReviewerId),
-          approver_id: Number(selectedApproverId),
-        },
+        payload,
       );
       notifications.show({
         title: "Submitted for Review",
@@ -498,6 +527,8 @@ export default function JobProfileDetail() {
       });
       setSelectedReviewerId(null);
       setSelectedApproverId(null);
+      setSelectedReviewerEmail("");
+      setSelectedApproverEmail("");
       await refreshProfile();
     } catch (e: any) {
       notifications.show({
@@ -1097,46 +1128,75 @@ export default function JobProfileDetail() {
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Skill</Table.Th>
-                      <Table.Th w={80}>Level</Table.Th>
-                      <Table.Th w={80}>Critical</Table.Th>
-                      <Table.Th w={60} />
+                      <Table.Th>Description</Table.Th>
+                      <Table.Th>Indicators</Table.Th>
+                      <Table.Th>Level</Table.Th>
+                      <Table.Th>Critical</Table.Th>
+                      <Table.Th />
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
-                    {profile.skills.map((s) => (
-                      <Table.Tr key={s.job_profile_skill_id}>
-                        <Table.Td>{s.skill_name || s.skill?.skill || '-'}</Table.Td>
-                        <Table.Td>
-                          <Badge variant="light" color="teal" size="sm">
-                            L{s.level}
-                          </Badge>
-                        </Table.Td>
-                        <Table.Td>
-                          {s.is_critical ? (
-                            <Badge size="xs" color="red" variant="light">
-                              Yes
-                            </Badge>
-                          ) : (
-                            <Text size="xs" c="dimmed">
-                              No
+                    {profile.skills.map((s) => {
+                      const indicators = parseIndicators(s.skill?.indicators);
+                      return (
+                        <Table.Tr key={s.job_profile_skill_id}>
+                          <Table.Td>
+                            <Text size="sm" fw={500}>
+                              {s.skill_name || s.skill?.skill || "-"}
                             </Text>
-                          )}
-                        </Table.Td>
-                        <Table.Td>
-                          <Tooltip label="Remove">
-                            <ActionIcon
-                              variant="subtle"
-                              color="red"
-                              onClick={() =>
-                                handleRemoveSkill(s.job_profile_skill_id)
-                              }
-                            >
-                              <IconTrash size={14} />
-                            </ActionIcon>
-                          </Tooltip>
-                        </Table.Td>
-                      </Table.Tr>
-                    ))}
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="xs" c="dimmed">
+                              {s.skill?.description || "—"}
+                            </Text>
+                          </Table.Td>
+                          <Table.Td>
+                            {indicators.length > 0 ? (
+                              <Stack gap={2}>
+                                {indicators.map((ind, i) => (
+                                  <Text key={i} size="xs" c="dimmed">
+                                    • {ind}
+                                  </Text>
+                                ))}
+                              </Stack>
+                            ) : (
+                              <Text size="xs" c="dimmed">
+                                —
+                              </Text>
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            <Badge variant="light" color="teal" size="sm">
+                              L{s.level}
+                            </Badge>
+                          </Table.Td>
+                          <Table.Td>
+                            {s.is_critical ? (
+                              <Badge size="xs" color="red" variant="light">
+                                Yes
+                              </Badge>
+                            ) : (
+                              <Text size="xs" c="dimmed">
+                                No
+                              </Text>
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            <Tooltip label="Remove">
+                              <ActionIcon
+                                variant="subtle"
+                                color="red"
+                                onClick={() =>
+                                  handleRemoveSkill(s.job_profile_skill_id)
+                                }
+                              >
+                                <IconTrash size={14} />
+                              </ActionIcon>
+                            </Tooltip>
+                          </Table.Td>
+                        </Table.Tr>
+                      );
+                    })}
                   </Table.Tbody>
                 </Table>
               ) : (
@@ -1177,9 +1237,9 @@ export default function JobProfileDetail() {
                 <Table>
                   <Table.Thead>
                     <Table.Tr>
-                      <Table.Th w={50}>#</Table.Th>
+                      <Table.Th>#</Table.Th>
                       <Table.Th>Deliverable</Table.Th>
-                      <Table.Th w={60} />
+                      <Table.Th />
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -1321,11 +1381,11 @@ export default function JobProfileDetail() {
                   <Table striped highlightOnHover withTableBorder withColumnBorders>
                     <Table.Thead>
                       <Table.Tr>
-                        <Table.Th w={100}>Role</Table.Th>
+                        <Table.Th>Role</Table.Th>
                         <Table.Th>Name</Table.Th>
-                        <Table.Th w={120}>Status</Table.Th>
-                        <Table.Th w={180}>Signature</Table.Th>
-                        <Table.Th w={120}>Date</Table.Th>
+                        <Table.Th>Status</Table.Th>
+                        <Table.Th>Signature</Table.Th>
+                        <Table.Th>Date</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -1401,37 +1461,80 @@ export default function JobProfileDetail() {
                   <Text size="sm" fw={500} mb="sm">
                     Submit for Review
                   </Text>
-                  <Stack gap="sm">
-                    <Group grow align="end">
+                  <Stack gap="md">
+                    <Stack gap={4}>
                       <Select
                         label="Reviewer (Office Reviewer)"
-                        placeholder="Select a reviewer"
+                        placeholder="Select an existing reviewer"
                         data={reviewerCandidates.map((r) => ({
                           value: String(r.id),
                           label: `${r.name} ${r.surname} (${r.email})`,
                         }))}
                         value={selectedReviewerId}
-                        onChange={setSelectedReviewerId}
+                        onChange={(v) => {
+                          setSelectedReviewerId(v);
+                          if (v) setSelectedReviewerEmail("");
+                        }}
                         searchable
                         clearable
+                        disabled={!!selectedReviewerEmail}
                       />
+                      <Text size="xs" c="dimmed" ta="center">
+                        — or —
+                      </Text>
+                      <TextInput
+                        label="Invite a new reviewer by email"
+                        placeholder="reviewer@example.com"
+                        type="email"
+                        value={selectedReviewerEmail}
+                        onChange={(e) => {
+                          const v = e.currentTarget.value;
+                          setSelectedReviewerEmail(v);
+                          if (v) setSelectedReviewerId(null);
+                        }}
+                      />
+                    </Stack>
+
+                    <Stack gap={4}>
                       <Select
                         label="Approver (Office Manager)"
-                        placeholder="Select an approver"
+                        placeholder="Select an existing approver"
                         data={approverCandidates.map((r) => ({
                           value: String(r.id),
                           label: `${r.name} ${r.surname} (${r.email})`,
                         }))}
                         value={selectedApproverId}
-                        onChange={setSelectedApproverId}
+                        onChange={(v) => {
+                          setSelectedApproverId(v);
+                          if (v) setSelectedApproverEmail("");
+                        }}
                         searchable
                         clearable
+                        disabled={!!selectedApproverEmail}
                       />
-                    </Group>
+                      <Text size="xs" c="dimmed" ta="center">
+                        — or —
+                      </Text>
+                      <TextInput
+                        label="Invite a new approver by email"
+                        placeholder="approver@example.com"
+                        type="email"
+                        value={selectedApproverEmail}
+                        onChange={(e) => {
+                          const v = e.currentTarget.value;
+                          setSelectedApproverEmail(v);
+                          if (v) setSelectedApproverId(null);
+                        }}
+                      />
+                    </Stack>
+
                     <Button
                       leftSection={<IconSend size={16} />}
                       onClick={handleSubmitForReview}
-                      disabled={!selectedReviewerId || !selectedApproverId}
+                      disabled={
+                        !(selectedReviewerId || selectedReviewerEmail.trim()) ||
+                        !(selectedApproverId || selectedApproverEmail.trim())
+                      }
                       loading={saving}
                       variant="gradient"
                       gradient={{ from: "grape", to: "violet", deg: 135 }}

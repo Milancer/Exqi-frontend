@@ -199,7 +199,7 @@ export default function Candidates() {
                 <Table.Th>Phone</Table.Th>
                 <Table.Th>Position</Table.Th>
                 <Table.Th>Status</Table.Th>
-                <Table.Th w={80}>Actions</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>

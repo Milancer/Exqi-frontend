@@ -128,6 +128,8 @@ export default function JobProfiles() {
   );
   const [createReviewerId, setCreateReviewerId] = useState<string | null>(null);
   const [createApproverId, setCreateApproverId] = useState<string | null>(null);
+  const [createReviewerEmail, setCreateReviewerEmail] = useState("");
+  const [createApproverEmail, setCreateApproverEmail] = useState("");
 
   // Full list of job profiles for "Reports To" dropdown
   const [profileOptions, setProfileOptions] = useState<{ value: number; label: string }[]>([]);
@@ -359,13 +361,17 @@ export default function JobProfiles() {
         }
       }
 
-      // Submit for review if both reviewer and approver selected
-      if (createReviewerId && createApproverId) {
+      // Submit for review if both reviewer and approver are picked (id OR email)
+      const reviewerProvided = createReviewerId || createReviewerEmail.trim();
+      const approverProvided = createApproverId || createApproverEmail.trim();
+      if (reviewerProvided && approverProvided) {
         try {
-          await api.post(`/job-profiles/${newId}/submit-for-review`, {
-            reviewer_id: Number(createReviewerId),
-            approver_id: Number(createApproverId),
-          });
+          const payload: Record<string, unknown> = {};
+          if (createReviewerId) payload.reviewer_id = Number(createReviewerId);
+          else payload.reviewer_email = createReviewerEmail.trim();
+          if (createApproverId) payload.approver_id = Number(createApproverId);
+          else payload.approver_email = createApproverEmail.trim();
+          await api.post(`/job-profiles/${newId}/submit-for-review`, payload);
         } catch {
           /* skip if fails */
         }
@@ -549,7 +555,7 @@ export default function JobProfiles() {
                 <Table.Th>Department</Table.Th>
                 {isAdmin && <Table.Th>Client</Table.Th>}
                 <Table.Th>Status</Table.Th>
-                <Table.Th w={120}>Actions</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -1129,9 +1135,9 @@ export default function JobProfiles() {
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>Skill</Table.Th>
-                      <Table.Th w={60}>Level</Table.Th>
-                      <Table.Th w={70}>Critical</Table.Th>
-                      <Table.Th w={40} />
+                      <Table.Th>Level</Table.Th>
+                      <Table.Th>Critical</Table.Th>
+                      <Table.Th />
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -1208,9 +1214,9 @@ export default function JobProfiles() {
                 <Table>
                   <Table.Thead>
                     <Table.Tr>
-                      <Table.Th w={40}>#</Table.Th>
+                      <Table.Th>#</Table.Th>
                       <Table.Th>Deliverable</Table.Th>
-                      <Table.Th w={40} />
+                      <Table.Th />
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -1308,43 +1314,97 @@ export default function JobProfiles() {
                 Optionally submit this job profile for review and approval after
                 creation. Both a Reviewer and Approver must be selected.
               </Text>
-              <Select
-                label="Reviewer (Office Reviewer)"
-                placeholder="Select a reviewer (optional)"
-                data={reviewerCandidates.map((r) => ({
-                  value: String(r.id),
-                  label: `${r.name} ${r.surname} (${r.email})`,
-                }))}
-                value={createReviewerId}
-                onChange={setCreateReviewerId}
-                searchable
-                clearable
-              />
-              <Select
-                label="Approver (Office Manager)"
-                placeholder="Select an approver (optional)"
-                data={approverCandidates.map((r) => ({
-                  value: String(r.id),
-                  label: `${r.name} ${r.surname} (${r.email})`,
-                }))}
-                value={createApproverId}
-                onChange={setCreateApproverId}
-                searchable
-                clearable
-              />
-              {createReviewerId && createApproverId && (
-                <Text size="xs" c="dimmed">
-                  The profile will be submitted for review. The Reviewer will be
-                  notified first, then the Approver after the review is complete.
+              {/* Reviewer */}
+              <Stack gap={4}>
+                <Select
+                  label="Reviewer (Office Reviewer)"
+                  placeholder="Select an existing reviewer"
+                  data={reviewerCandidates.map((r) => ({
+                    value: String(r.id),
+                    label: `${r.name} ${r.surname} (${r.email})`,
+                  }))}
+                  value={createReviewerId}
+                  onChange={(v) => {
+                    setCreateReviewerId(v);
+                    if (v) setCreateReviewerEmail("");
+                  }}
+                  searchable
+                  clearable
+                  disabled={!!createReviewerEmail}
+                />
+                <Text size="xs" c="dimmed" ta="center">
+                  — or —
                 </Text>
-              )}
-              {((createReviewerId && !createApproverId) ||
-                (!createReviewerId && createApproverId)) && (
-                <Text size="xs" c="orange">
-                  Both a Reviewer and Approver must be selected to submit for
-                  review.
+                <TextInput
+                  label="Invite a new reviewer by email"
+                  placeholder="reviewer@example.com"
+                  type="email"
+                  value={createReviewerEmail}
+                  onChange={(e) => {
+                    const v = e.currentTarget.value;
+                    setCreateReviewerEmail(v);
+                    if (v) setCreateReviewerId(null);
+                  }}
+                  description="They'll receive an invite email to set their password and review the profile."
+                />
+              </Stack>
+
+              {/* Approver */}
+              <Stack gap={4}>
+                <Select
+                  label="Approver (Office Manager)"
+                  placeholder="Select an existing approver"
+                  data={approverCandidates.map((r) => ({
+                    value: String(r.id),
+                    label: `${r.name} ${r.surname} (${r.email})`,
+                  }))}
+                  value={createApproverId}
+                  onChange={(v) => {
+                    setCreateApproverId(v);
+                    if (v) setCreateApproverEmail("");
+                  }}
+                  searchable
+                  clearable
+                  disabled={!!createApproverEmail}
+                />
+                <Text size="xs" c="dimmed" ta="center">
+                  — or —
                 </Text>
-              )}
+                <TextInput
+                  label="Invite a new approver by email"
+                  placeholder="approver@example.com"
+                  type="email"
+                  value={createApproverEmail}
+                  onChange={(e) => {
+                    const v = e.currentTarget.value;
+                    setCreateApproverEmail(v);
+                    if (v) setCreateApproverId(null);
+                  }}
+                  description="They'll receive an invite email to set their password and approve the profile."
+                />
+              </Stack>
+
+              {(() => {
+                const reviewerSet = !!createReviewerId || !!createReviewerEmail.trim();
+                const approverSet = !!createApproverId || !!createApproverEmail.trim();
+                if (reviewerSet && approverSet) {
+                  return (
+                    <Text size="xs" c="dimmed">
+                      The profile will be submitted for review. The Reviewer will be
+                      notified first, then the Approver after the review is complete.
+                    </Text>
+                  );
+                }
+                if (reviewerSet !== approverSet) {
+                  return (
+                    <Text size="xs" c="orange">
+                      Both a Reviewer and Approver must be selected to submit for
+                      review.
+                    </Text>
+                  );
+                }
+                return null;
+              })()}
             </Stack>
           </Tabs.Panel>
         </Tabs>

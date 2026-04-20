@@ -29,7 +29,8 @@ import {
   IconBuilding,
   IconSettings,
   IconBell,
-  // IconUserSearch,  // Recruitment hidden for now
+  IconUserSearch,
+  IconMessageQuestion,
   IconClipboardList,
   IconSitemap,
   IconTable,
@@ -66,11 +67,15 @@ export default function DashboardLayout() {
 
   const initials = user?.email ? user.email.charAt(0).toUpperCase() : "?";
   const isAdmin = user?.role === "ADMIN";
+  const isOfficeReviewer = user?.role === "OFFICE_REVIEWER";
   const userModules = user?.modules || [];
 
-  // Check if user has access to modules
-  const hasJobProfileModule = isAdmin || userModules.includes("Job Profile");
-  const hasCbiModule = isAdmin || userModules.includes("Competency Based Interview");
+  // OFFICE_REVIEWER is locked down to Job Profiles only — no other modules, dashboard, or admin.
+  const hasJobProfileModule =
+    isAdmin || isOfficeReviewer || userModules.includes("Job Profile");
+  const hasCbiModule =
+    !isOfficeReviewer && (isAdmin || userModules.includes("Competency Based Interview"));
+  const showDashboard = !isOfficeReviewer;
   // Admin section visible to ADMIN and OFFICE_MANAGER only
   const isOfficeManager = user?.role === "OFFICE_MANAGER";
   const canSeeAdmin = isAdmin || isOfficeManager;
@@ -79,9 +84,13 @@ export default function DashboardLayout() {
   const cbiChildren = [
     { label: "Competencies", path: "/competencies", icon: IconTable },
     { label: "CBI Templates", path: "/cbi-templates", icon: IconClipboardList },
+    { label: "Candidates", path: "/candidates", icon: IconUserSearch },
+    { label: "Interviews", path: "/interviews", icon: IconMessageQuestion },
   ];
 
-  const isCbiActive = cbiChildren.some((c) => location.pathname === c.path);
+  const isCbiActive = cbiChildren.some((c) =>
+    location.pathname.startsWith(c.path),
+  );
 
   // Admin sub-nav items - filter based on role
   const adminChildren = [
@@ -93,9 +102,12 @@ export default function DashboardLayout() {
   const isAdminActive = adminChildren.some((c) => location.pathname === c.path);
 
   // Role Architecture sub-nav items (only if has Job Profile module)
+  // OFFICE_REVIEWER only gets the Job Profiles list (no Competency Table)
   const roleArchChildren = [
     { label: "Job Profiles", path: "/job-profiles", icon: IconBriefcase },
-    { label: "Competency Table", path: "/jp-competencies", icon: IconTable },
+    ...(isOfficeReviewer
+      ? []
+      : [{ label: "Competency Table", path: "/jp-competencies", icon: IconTable }]),
   ];
 
   const isRoleArchActive = roleArchChildren.some((c) =>
@@ -236,29 +248,31 @@ export default function DashboardLayout() {
             Navigation
           </Text>
 
-          {/* Dashboard */}
-          <NavLink
-            label="Dashboard"
-            leftSection={<IconDashboard size="1.1rem" stroke={1.5} />}
-            active={location.pathname === "/"}
-            onClick={() => {
-              navigate("/");
-              if (opened) toggle();
-            }}
-            mb={4}
-            style={() => ({
-              borderRadius: "var(--mantine-radius-md)",
-              color:
-                location.pathname === "/" ? "#fff" : "rgba(255,255,255,0.75)",
-              backgroundColor:
-                location.pathname === "/"
-                  ? "rgba(255,255,255,0.15)"
-                  : "transparent",
-            })}
-            variant="subtle"
-          />
+          {/* Dashboard — hidden for OFFICE_REVIEWER */}
+          {showDashboard && (
+            <NavLink
+              label="Dashboard"
+              leftSection={<IconDashboard size="1.1rem" stroke={1.5} />}
+              active={location.pathname === "/"}
+              onClick={() => {
+                navigate("/");
+                if (opened) toggle();
+              }}
+              mb={4}
+              style={() => ({
+                borderRadius: "var(--mantine-radius-md)",
+                color:
+                  location.pathname === "/" ? "#fff" : "rgba(255,255,255,0.75)",
+                backgroundColor:
+                  location.pathname === "/"
+                    ? "rgba(255,255,255,0.15)"
+                    : "transparent",
+              })}
+              variant="subtle"
+            />
+          )}
 
-          {/* Admin parent with sub-nav — hidden for OFFICE_USER */}
+          {/* Admin parent with sub-nav — hidden for OFFICE_USER and OFFICE_REVIEWER */}
           {canSeeAdmin && (
             <NavLink
               label="Admin"

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute, AdminRoute, ModuleRoute } from "./components/ProtectedRoute";
+import { useAuth } from "./contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -19,6 +20,14 @@ import InterviewForm from "./pages/InterviewForm";
 import Profile from "./pages/Profile";
 import BulkImport from "./pages/BulkImport";
 
+function HomeRedirect() {
+  const { user } = useAuth();
+  if (user?.role === "OFFICE_REVIEWER") {
+    return <Navigate to="/job-profiles" replace />;
+  }
+  return <Dashboard />;
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -35,7 +44,7 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        <Route index element={<HomeRedirect />} />
 
         {/* CBI Module routes */}
         <Route path="competencies" element={<ModuleRoute module="Competency Based Interview"><Competencies /></ModuleRoute>} />
@@ -51,9 +60,9 @@ export default function AppRoutes() {
         <Route path="clients" element={<AdminRoute><Clients /></AdminRoute>} />
         <Route path="bulk-import" element={<AdminRoute><BulkImport /></AdminRoute>} />
 
-        {/* Recruitment routes */}
-        <Route path="candidates" element={<Candidates />} />
-        <Route path="interviews" element={<Interviews />} />
+        {/* CBI: Candidates & Interviews (sub-items under CBI module) */}
+        <Route path="candidates" element={<ModuleRoute module="Competency Based Interview"><Candidates /></ModuleRoute>} />
+        <Route path="interviews" element={<ModuleRoute module="Competency Based Interview"><Interviews /></ModuleRoute>} />
 
         {/* General routes */}
         <Route path="notifications" element={<Notifications />} />

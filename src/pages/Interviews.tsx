@@ -18,20 +18,29 @@ import {
   Center,
   TextInput,
   Progress,
-  CopyButton,
   ThemeIcon,
   RingProgress,
+  Checkbox,
+  Divider,
+  Alert,
 } from "@mantine/core";
 import {
   IconPlus,
   IconTrash,
   IconEye,
   IconClipboardList,
-  IconCopy,
   IconCheck,
   IconAlertTriangle,
   IconClock,
+  IconDownload,
+  IconInfoCircle,
 } from "@tabler/icons-react";
+import {
+  downloadInterviewPdf,
+  type InterviewQuestion,
+} from "../components/InterviewPdf";
+import { useClients } from "../services/clients/hooks";
+import { useAuth } from "../contexts/AuthContext";
 import { useForm } from "@mantine/form";
 import api from "../services/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
@@ -57,6 +66,18 @@ export default function Interviews() {
   const [candidates, setCandidates] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+
+  // Per-template available questions for the picker
+  const [availableQuestions, setAvailableQuestions] = useState<InterviewQuestion[]>([]);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<number>>(new Set());
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+
+  const { user } = useAuth();
+  const { data: clients = [] } = useClients();
+  const clientLogo =
+    (user?.role === "ADMIN"
+      ? null
+      : clients.find((c) => c.id === user?.clientId)?.logo) || null;
 
   const f = useUrlFilters(["search", "ivStatus"] as const);
 
@@ -128,15 +149,106 @@ export default function Interviews() {
     });
   }, [sessions, f]);
 
+  // Group available questions by competency for rendering
+  const questionsByCompetency = useMemo(() => {
+    const groups: Record<string, InterviewQuestion[]> = {};
+    for (const q of availableQuestions) {
+      const key = q.competency_name;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(q);
+    }
+    return groups;
+  }, [availableQuestions]);
+
+  // Fetch the resolved question list whenever the template selection changes
+  useEffect(() => {
+    const tplId = form.values.cbi_template_id;
+    if (!tplId) {
+      setAvailableQuestions([]);
+      setSelectedQuestionIds(new Set());
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingQuestions(true);
+      try {
+        const res = await api.get(`/interviews/template/${tplId}/questions`);
+        if (cancelled) return;
+        setAvailableQuestions(res.data);
+        // Default: pre-select all questions
+        setSelectedQuestionIds(new Set(res.data.map((q: InterviewQuestion) => q.question_id)));
+      } catch (err: any) {
+        if (cancelled) return;
+        setAvailableQuestions([]);
+        setSelectedQuestionIds(new Set());
+        notifications.show({
+          title: "Error",
+          message: err.response?.data?.message || "Failed to load template questions",
+          color: "red",
+        });
+      } finally {
+        if (!cancelled) setLoadingQuestions(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.values.cbi_template_id]);
+
+  const toggleQuestion = (id: number) => {
+    setSelectedQuestionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleCompetency = (competencyName: string, checked: boolean) => {
+    const idsInGroup = (questionsByCompetency[competencyName] || []).map(
+      (q) => q.question_id,
+    );
+    setSelectedQuestionIds((prev) => {
+      const next = new Set(prev);
+      idsInGroup.forEach((id) => (checked ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  };
+
   const handleCreate = async (values: typeof form.values) => {
+    // Validate: at least one question per competency present in the template
+    if (availableQuestions.length === 0) {
+      notifications.show({
+        title: "No questions available",
+        message: "This template has no questions to choose from.",
+        color: "orange",
+      });
+      return;
+    }
+    const competencyNames = Object.keys(questionsByCompetency);
+    const competenciesWithoutSelection = competencyNames.filter((name) => {
+      const ids = questionsByCompetency[name].map((q) => q.question_id);
+      return !ids.some((id) => selectedQuestionIds.has(id));
+    });
+    if (competenciesWithoutSelection.length > 0) {
+      notifications.show({
+        title: "Select at least one question per competency",
+        message: `Missing selections in: ${competenciesWithoutSelection.join(", ")}`,
+        color: "orange",
+      });
+      return;
+    }
+
     try {
       await api.post("/interviews", {
         candidate_id: +values.candidate_id,
         cbi_template_id: +values.cbi_template_id,
         interviewer_id: +values.interviewer_id,
+        selected_question_ids: Array.from(selectedQuestionIds),
       });
       setModalOpened(false);
       form.reset();
+      setAvailableQuestions([]);
+      setSelectedQuestionIds(new Set());
       fetchSessions();
     } catch (err: any) {
       notifications.show({
@@ -145,6 +257,20 @@ export default function Interviews() {
         color: "red",
       });
     }
+  };
+
+  const handleDownloadPdf = (s: InterviewSession) => {
+    downloadInterviewPdf(
+      {
+        candidateName: `${s.candidate?.name || ""} ${s.candidate?.surname || ""}`.trim(),
+        templateName: s.template?.template_name || "Interview",
+        interviewer: s.interviewer
+          ? `${s.interviewer.name} ${s.interviewer.surname}`
+          : undefined,
+        questions: (s as any).questions || [],
+      },
+      clientLogo,
+    );
   };
 
   const handleCancel = async (id: number) => {
@@ -225,9 +351,6 @@ export default function Interviews() {
         return "gray";
     }
   };
-
-  const getInterviewLink = (token: string) =>
-    `${window.location.origin}/interview/${token}`;
 
   // Detail view
   if (detailSession) {
@@ -527,7 +650,7 @@ export default function Interviews() {
                 <Table.Th>Status</Table.Th>
                 <Table.Th>Score</Table.Th>
                 <Table.Th>Expires</Table.Th>
-                <Table.Th w={120}>Actions</Table.Th>
+                <Table.Th>Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -591,28 +714,15 @@ export default function Interviews() {
                           <IconEye size={16} />
                         </ActionIcon>
                       </Tooltip>
-                      {(s.status === "Pending" ||
-                        s.status === "InProgress") && (
-                        <CopyButton value={getInterviewLink(s.token)}>
-                          {({ copied, copy }) => (
-                            <Tooltip
-                              label={copied ? "Copied!" : "Copy interview link"}
-                            >
-                              <ActionIcon
-                                variant="subtle"
-                                color={copied ? "teal" : "blue"}
-                                onClick={copy}
-                              >
-                                {copied ? (
-                                  <IconCheck size={16} />
-                                ) : (
-                                  <IconCopy size={16} />
-                                )}
-                              </ActionIcon>
-                            </Tooltip>
-                          )}
-                        </CopyButton>
-                      )}
+                      <Tooltip label="Download Questionnaire PDF">
+                        <ActionIcon
+                          variant="subtle"
+                          color="blue"
+                          onClick={() => handleDownloadPdf(s)}
+                        >
+                          <IconDownload size={16} />
+                        </ActionIcon>
+                      </Tooltip>
                       {s.status !== "Completed" && (
                         <Tooltip label="Cancel">
                           <ActionIcon
@@ -639,9 +749,11 @@ export default function Interviews() {
         onClose={() => {
           setModalOpened(false);
           form.reset();
+          setAvailableQuestions([]);
+          setSelectedQuestionIds(new Set());
         }}
-        title="Create Interview Session"
-        size="md"
+        title="Create Interview"
+        size="xl"
       >
         <form onSubmit={form.onSubmit(handleCreate)}>
           <Stack gap="sm">
@@ -678,8 +790,106 @@ export default function Interviews() {
               searchable
               {...form.getInputProps("interviewer_id")}
             />
+
+            {/* Question picker — shown after a template is chosen */}
+            {form.values.cbi_template_id && (
+              <>
+                <Divider my="xs" label="Select Questions" labelPosition="left" />
+                <Alert
+                  color="blue"
+                  variant="light"
+                  icon={<IconInfoCircle size={16} />}
+                  py="xs"
+                >
+                  <Text size="xs">
+                    Tick the questions you want to use in this interview. At least
+                    one question per competency is required.
+                  </Text>
+                </Alert>
+
+                {loadingQuestions ? (
+                  <Center py="md">
+                    <Loader size="sm" />
+                  </Center>
+                ) : availableQuestions.length === 0 ? (
+                  <Text size="sm" c="dimmed" ta="center" py="md">
+                    This template has no resolvable questions. Add questions to its
+                    competencies first.
+                  </Text>
+                ) : (
+                  <Stack gap="md" mah={400} style={{ overflowY: "auto" }}>
+                    {Object.entries(questionsByCompetency).map(
+                      ([competencyName, qs]) => {
+                        const total = qs.length;
+                        const selectedCount = qs.filter((q) =>
+                          selectedQuestionIds.has(q.question_id),
+                        ).length;
+                        const allSelected = selectedCount === total;
+                        const noneSelected = selectedCount === 0;
+                        return (
+                          <Paper
+                            key={competencyName}
+                            withBorder
+                            p="sm"
+                            radius="md"
+                            style={
+                              noneSelected
+                                ? {
+                                    borderColor: "var(--mantine-color-orange-4)",
+                                    background: "var(--mantine-color-orange-0)",
+                                  }
+                                : undefined
+                            }
+                          >
+                            <Group justify="space-between" mb="xs">
+                              <Group gap="xs">
+                                <Checkbox
+                                  checked={allSelected}
+                                  indeterminate={!allSelected && selectedCount > 0}
+                                  onChange={(e) =>
+                                    toggleCompetency(
+                                      competencyName,
+                                      e.currentTarget.checked,
+                                    )
+                                  }
+                                  label={
+                                    <Text fw={600} size="sm">
+                                      {competencyName}
+                                    </Text>
+                                  }
+                                />
+                              </Group>
+                              <Badge
+                                size="sm"
+                                variant="light"
+                                color={noneSelected ? "orange" : "blue"}
+                              >
+                                {selectedCount} / {total} selected
+                              </Badge>
+                            </Group>
+                            <Stack gap={4} pl="lg">
+                              {qs.map((q) => (
+                                <Checkbox
+                                  key={q.question_id}
+                                  checked={selectedQuestionIds.has(q.question_id)}
+                                  onChange={() => toggleQuestion(q.question_id)}
+                                  label={
+                                    <Text size="sm">{q.question_text}</Text>
+                                  }
+                                />
+                              ))}
+                            </Stack>
+                          </Paper>
+                        );
+                      },
+                    )}
+                  </Stack>
+                )}
+              </>
+            )}
+
             <Button type="submit" fullWidth mt="sm">
-              Create & Generate Link
+              Create Interview
             </Button>
           </Stack>
         </form>

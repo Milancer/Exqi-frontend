@@ -315,9 +315,9 @@ export default function CbiTemplates() {
               <Table.Tr>
                 <Table.Th>Template</Table.Th>
                 <Table.Th>Competencies</Table.Th>
-                <Table.Th w={100} ta="center">Questions</Table.Th>
-                <Table.Th w={120} ta="center">Date Modified</Table.Th>
-                <Table.Th w={120} ta="center">Actions</Table.Th>
+                <Table.Th ta="center">Questions</Table.Th>
+                <Table.Th ta="center">Date Modified</Table.Th>
+                <Table.Th ta="center">Actions</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>

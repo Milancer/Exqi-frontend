@@ -18,6 +18,7 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { IconLock, IconAlertCircle, IconCheck } from "@tabler/icons-react";
 import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 type PageState = "loading" | "valid" | "invalid" | "success";
 
@@ -25,6 +26,8 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
+  const redirect = searchParams.get("redirect");
+  const { login } = useAuth();
 
   const [pageState, setPageState] = useState<PageState>("loading");
   const [userEmail, setUserEmail] = useState<string>("");
@@ -80,6 +83,19 @@ export default function ResetPasswordPage() {
         token,
         password: values.password,
       });
+
+      // If a redirect target is provided (typical for invited reviewers), auto-sign-in
+      // and bounce them straight to where they're meant to be (e.g. the job profile).
+      if (redirect && userEmail) {
+        try {
+          await login(userEmail, values.password);
+          navigate(redirect);
+          return;
+        } catch {
+          // Auto-login failed; fall through to the standard success state
+        }
+      }
+
       setPageState("success");
       notifications.show({
         title: "Password set successfully",
