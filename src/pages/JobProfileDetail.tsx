@@ -123,6 +123,11 @@ export default function JobProfileDetail() {
   const [reqExperience, setReqExperience] = useState("");
   const [reqCerts, setReqCerts] = useState("");
   const [reqOther, setReqOther] = useState("");
+  // Structured requirements (aligned with old EXQI)
+  const [reqMinQual, setReqMinQual] = useState("");
+  const [reqPrefQual, setReqPrefQual] = useState("");
+  const [reqProfBody, setReqProfBody] = useState("");
+  const [reqKnowledge, setReqKnowledge] = useState("");
 
   // Two-step Review → Approval
   const [reviewerCandidates, setReviewerCandidates] = useState<JPReviewer[]>([]);
@@ -292,11 +297,19 @@ export default function JobProfileDetail() {
       setReqExperience(r.experience || "");
       setReqCerts(r.certifications || "");
       setReqOther(r.other_requirements || "");
+      setReqMinQual(r.minimum_qualification || "");
+      setReqPrefQual(r.preferred_qualification || "");
+      setReqProfBody(r.professional_body_registration || "");
+      setReqKnowledge(r.knowledge || "");
     } else {
       setReqEducation("");
       setReqExperience("");
       setReqCerts("");
       setReqOther("");
+      setReqMinQual("");
+      setReqPrefQual("");
+      setReqProfBody("");
+      setReqKnowledge("");
     }
   }, [profile]);
 
@@ -485,6 +498,10 @@ export default function JobProfileDetail() {
         experience: reqExperience,
         certifications: reqCerts,
         other_requirements: reqOther,
+        minimum_qualification: reqMinQual,
+        preferred_qualification: reqPrefQual,
+        professional_body_registration: reqProfBody,
+        knowledge: reqKnowledge,
       });
       notifications.show({
         title: "Saved",
@@ -1234,26 +1251,37 @@ export default function JobProfileDetail() {
               </Paper>
 
               {profile.deliverables && profile.deliverables.length > 0 ? (
-                <Table>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>#</Table.Th>
-                      <Table.Th>Deliverable</Table.Th>
-                      <Table.Th />
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {profile.deliverables
-                      .sort((a, b) => a.sequence - b.sequence)
-                      .map((d) => (
-                        <Table.Tr key={d.job_profile_deliverable_id}>
-                          <Table.Td>
-                            <Badge variant="light" color="gray" size="sm">
-                              {d.sequence}
-                            </Badge>
-                          </Table.Td>
-                          <Table.Td>{d.deliverable}</Table.Td>
-                          <Table.Td>
+                <Stack gap="sm">
+                  {profile.deliverables
+                    .sort((a, b) => a.sequence - b.sequence)
+                    .map((d) => {
+                      const hasStructured = !!(d.kpa || d.kpis || d.responsibilities);
+                      const kpiLines = (d.kpis || "")
+                        .split("\n")
+                        .map((l) => l.trim())
+                        .filter(Boolean);
+                      const respLines = (d.responsibilities || "")
+                        .split("\n")
+                        .map((l) => l.trim())
+                        .filter(Boolean);
+                      return (
+                        <Paper
+                          key={d.job_profile_deliverable_id}
+                          withBorder
+                          p="md"
+                          radius="md"
+                        >
+                          <Group justify="space-between" align="flex-start" mb="xs">
+                            <Group gap="xs">
+                              <Badge variant="light" color="gray" size="sm">
+                                #{d.sequence}
+                              </Badge>
+                              {d.weight !== null && d.weight !== undefined && (
+                                <Badge variant="light" color="indigo" size="sm">
+                                  Weight {d.weight}
+                                </Badge>
+                              )}
+                            </Group>
                             <Tooltip label="Remove">
                               <ActionIcon
                                 variant="subtle"
@@ -1267,11 +1295,54 @@ export default function JobProfileDetail() {
                                 <IconTrash size={14} />
                               </ActionIcon>
                             </Tooltip>
-                          </Table.Td>
-                        </Table.Tr>
-                      ))}
-                  </Table.Tbody>
-                </Table>
+                          </Group>
+
+                          {hasStructured ? (
+                            <Stack gap="xs">
+                              {d.kpa && (
+                                <Box>
+                                  <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                                    KPA
+                                  </Text>
+                                  <Text size="sm">{d.kpa}</Text>
+                                </Box>
+                              )}
+                              {kpiLines.length > 0 && (
+                                <Box>
+                                  <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                                    KPIs
+                                  </Text>
+                                  <Stack gap={2}>
+                                    {kpiLines.map((line, i) => (
+                                      <Text key={i} size="sm">
+                                        • {line}
+                                      </Text>
+                                    ))}
+                                  </Stack>
+                                </Box>
+                              )}
+                              {respLines.length > 0 && (
+                                <Box>
+                                  <Text size="xs" c="dimmed" fw={600} tt="uppercase">
+                                    Responsibilities
+                                  </Text>
+                                  <Stack gap={2}>
+                                    {respLines.map((line, i) => (
+                                      <Text key={i} size="sm">
+                                        • {line}
+                                      </Text>
+                                    ))}
+                                  </Stack>
+                                </Box>
+                              )}
+                            </Stack>
+                          ) : (
+                            <Text size="sm">{d.deliverable}</Text>
+                          )}
+                        </Paper>
+                      );
+                    })}
+                </Stack>
               ) : (
                 <Text c="dimmed" size="sm" ta="center" py="lg">
                   No deliverables defined yet
@@ -1284,18 +1355,26 @@ export default function JobProfileDetail() {
           <Tabs.Panel value="requirements" pt="md">
             <Stack>
               <Text size="sm" c="dimmed">
-                Define education, experience, and certification requirements.
+                Define qualifications, experience, certifications, and knowledge required for this role.
               </Text>
               <Textarea
-                label="Education"
+                label="Minimum Qualification"
                 placeholder="e.g., Bachelor's degree in Computer Science"
-                value={reqEducation}
-                onChange={(e) => setReqEducation(e.currentTarget.value)}
+                value={reqMinQual}
+                onChange={(e) => setReqMinQual(e.currentTarget.value)}
                 minRows={2}
                 autosize
               />
               <Textarea
-                label="Experience"
+                label="Preferred Qualification"
+                placeholder="e.g., Master's in Engineering"
+                value={reqPrefQual}
+                onChange={(e) => setReqPrefQual(e.currentTarget.value)}
+                minRows={2}
+                autosize
+              />
+              <Textarea
+                label="Work Experience"
                 placeholder="e.g., 5+ years of software development"
                 value={reqExperience}
                 onChange={(e) => setReqExperience(e.currentTarget.value)}
@@ -1307,6 +1386,22 @@ export default function JobProfileDetail() {
                 placeholder="e.g., AWS Certified Solutions Architect"
                 value={reqCerts}
                 onChange={(e) => setReqCerts(e.currentTarget.value)}
+                minRows={2}
+                autosize
+              />
+              <Textarea
+                label="Professional Body Registration"
+                placeholder="e.g., Registered with ECSA"
+                value={reqProfBody}
+                onChange={(e) => setReqProfBody(e.currentTarget.value)}
+                minRows={2}
+                autosize
+              />
+              <Textarea
+                label="Knowledge"
+                placeholder="e.g., Knowledge of cloud architecture, agile methodologies"
+                value={reqKnowledge}
+                onChange={(e) => setReqKnowledge(e.currentTarget.value)}
                 minRows={2}
                 autosize
               />

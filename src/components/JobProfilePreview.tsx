@@ -320,14 +320,54 @@ const JobProfilePDF = ({
         {profile.deliverables && profile.deliverables.length > 0 && (
           <View style={pdfStyles.section}>
             <PDFText style={pdfStyles.sectionHeader}>KEY DELIVERABLES</PDFText>
-            {profile.deliverables.map((del, idx) => (
-              <View key={idx} style={pdfStyles.fieldRow}>
-                <PDFText style={pdfStyles.fieldLabel}>{idx + 1}.</PDFText>
-                <PDFText style={pdfStyles.fieldValue}>
-                  {del.deliverable}
-                </PDFText>
-              </View>
-            ))}
+            {profile.deliverables
+              .slice()
+              .sort((a, b) => a.sequence - b.sequence)
+              .map((del, idx) => {
+                const hasStructured = !!(del.kpa || del.kpis || del.responsibilities);
+                const kpiLines = (del.kpis || "")
+                  .split("\n")
+                  .map((l) => l.trim())
+                  .filter(Boolean);
+                const respLines = (del.responsibilities || "")
+                  .split("\n")
+                  .map((l) => l.trim())
+                  .filter(Boolean);
+                return (
+                  <View key={idx} style={{ marginBottom: 10 }} wrap={false}>
+                    <PDFText style={{ fontWeight: "bold", fontSize: 10, marginBottom: 2 }}>
+                      {idx + 1}. {del.kpa || del.deliverable}
+                      {del.weight !== null && del.weight !== undefined
+                        ? `   (Weight ${del.weight})`
+                        : ""}
+                    </PDFText>
+                    {hasStructured && kpiLines.length > 0 && (
+                      <View style={{ marginLeft: 12, marginTop: 2 }}>
+                        <PDFText style={{ fontSize: 8, color: "#666", marginBottom: 1 }}>
+                          KPIs:
+                        </PDFText>
+                        {kpiLines.map((line, i) => (
+                          <PDFText key={i} style={{ fontSize: 9, marginLeft: 6 }}>
+                            • {line}
+                          </PDFText>
+                        ))}
+                      </View>
+                    )}
+                    {hasStructured && respLines.length > 0 && (
+                      <View style={{ marginLeft: 12, marginTop: 2 }}>
+                        <PDFText style={{ fontSize: 8, color: "#666", marginBottom: 1 }}>
+                          Responsibilities:
+                        </PDFText>
+                        {respLines.map((line, i) => (
+                          <PDFText key={i} style={{ fontSize: 9, marginLeft: 6 }}>
+                            • {line}
+                          </PDFText>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
           </View>
         )}
 
@@ -335,17 +375,25 @@ const JobProfilePDF = ({
         {profile.requirements && (
           <View style={pdfStyles.section}>
             <PDFText style={pdfStyles.sectionHeader}>REQUIREMENTS</PDFText>
-            {profile.requirements.education && (
+            {(profile.requirements.minimum_qualification || profile.requirements.education) && (
               <View style={pdfStyles.fieldRow}>
-                <PDFText style={pdfStyles.fieldLabel}>Education:</PDFText>
+                <PDFText style={pdfStyles.fieldLabel}>Minimum Qualification:</PDFText>
                 <PDFText style={pdfStyles.fieldValue}>
-                  {profile.requirements.education}
+                  {profile.requirements.minimum_qualification || profile.requirements.education}
+                </PDFText>
+              </View>
+            )}
+            {profile.requirements.preferred_qualification && (
+              <View style={pdfStyles.fieldRow}>
+                <PDFText style={pdfStyles.fieldLabel}>Preferred Qualification:</PDFText>
+                <PDFText style={pdfStyles.fieldValue}>
+                  {profile.requirements.preferred_qualification}
                 </PDFText>
               </View>
             )}
             {profile.requirements.experience && (
               <View style={pdfStyles.fieldRow}>
-                <PDFText style={pdfStyles.fieldLabel}>Experience:</PDFText>
+                <PDFText style={pdfStyles.fieldLabel}>Work Experience:</PDFText>
                 <PDFText style={pdfStyles.fieldValue}>
                   {profile.requirements.experience}
                 </PDFText>
@@ -356,6 +404,22 @@ const JobProfilePDF = ({
                 <PDFText style={pdfStyles.fieldLabel}>Certifications:</PDFText>
                 <PDFText style={pdfStyles.fieldValue}>
                   {profile.requirements.certifications}
+                </PDFText>
+              </View>
+            )}
+            {profile.requirements.professional_body_registration && (
+              <View style={pdfStyles.fieldRow}>
+                <PDFText style={pdfStyles.fieldLabel}>Professional Body:</PDFText>
+                <PDFText style={pdfStyles.fieldValue}>
+                  {profile.requirements.professional_body_registration}
+                </PDFText>
+              </View>
+            )}
+            {profile.requirements.knowledge && (
+              <View style={pdfStyles.fieldRow}>
+                <PDFText style={pdfStyles.fieldLabel}>Knowledge:</PDFText>
+                <PDFText style={pdfStyles.fieldValue}>
+                  {profile.requirements.knowledge}
                 </PDFText>
               </View>
             )}
@@ -714,23 +778,65 @@ export default function JobProfilePreview({
                 <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>
                   Key Deliverables ({profile.deliverables.length})
                 </Text>
-                <Stack gap="xs">
+                <Stack gap="sm">
                   {profile.deliverables
                     .sort((a, b) => a.sequence - b.sequence)
-                    .map((del, idx) => (
-                      <Paper
-                        key={del.job_profile_deliverable_id}
-                        p="xs"
-                        withBorder
-                      >
-                        <Group gap="xs" wrap="nowrap">
-                          <Badge size="sm" variant="light" color="gray">
-                            {idx + 1}
-                          </Badge>
-                          <Text size="sm">{del.deliverable}</Text>
-                        </Group>
-                      </Paper>
-                    ))}
+                    .map((del, idx) => {
+                      const hasStructured = !!(del.kpa || del.kpis || del.responsibilities);
+                      const kpiLines = (del.kpis || "")
+                        .split("\n")
+                        .map((l) => l.trim())
+                        .filter(Boolean);
+                      const respLines = (del.responsibilities || "")
+                        .split("\n")
+                        .map((l) => l.trim())
+                        .filter(Boolean);
+                      return (
+                        <Paper
+                          key={del.job_profile_deliverable_id}
+                          p="sm"
+                          withBorder
+                        >
+                          <Group gap="xs" mb={4}>
+                            <Badge size="sm" variant="light" color="gray">
+                              #{idx + 1}
+                            </Badge>
+                            {del.weight !== null && del.weight !== undefined && (
+                              <Badge size="sm" variant="light" color="indigo">
+                                Weight {del.weight}
+                              </Badge>
+                            )}
+                          </Group>
+                          {hasStructured ? (
+                            <Stack gap="xs">
+                              {del.kpa && (
+                                <Text size="sm" fw={500}>
+                                  {del.kpa}
+                                </Text>
+                              )}
+                              {kpiLines.length > 0 && (
+                                <Box>
+                                  <Text size="xs" c="dimmed" fw={600}>KPIs</Text>
+                                  {kpiLines.map((l, i) => (
+                                    <Text key={i} size="xs">• {l}</Text>
+                                  ))}
+                                </Box>
+                              )}
+                              {respLines.length > 0 && (
+                                <Box>
+                                  <Text size="xs" c="dimmed" fw={600}>Responsibilities</Text>
+                                  {respLines.map((l, i) => (
+                                    <Text key={i} size="xs">• {l}</Text>
+                                  ))}
+                                </Box>
+                              )}
+                            </Stack>
+                          ) : (
+                            <Text size="sm">{del.deliverable}</Text>
+                          )}
+                        </Paper>
+                      );
+                    })}
                 </Stack>
               </Box>
             </>
@@ -745,20 +851,30 @@ export default function JobProfilePreview({
                   Requirements
                 </Text>
                 <Stack gap="xs">
-                  {profile.requirements.education && (
+                  {(profile.requirements.minimum_qualification || profile.requirements.education) && (
                     <Box>
                       <Text size="xs" c="dimmed" fw={500}>
-                        Education
+                        Minimum Qualification
                       </Text>
                       <Text size="sm">
-                        {profile.requirements.education}
+                        {profile.requirements.minimum_qualification || profile.requirements.education}
+                      </Text>
+                    </Box>
+                  )}
+                  {profile.requirements.preferred_qualification && (
+                    <Box>
+                      <Text size="xs" c="dimmed" fw={500}>
+                        Preferred Qualification
+                      </Text>
+                      <Text size="sm">
+                        {profile.requirements.preferred_qualification}
                       </Text>
                     </Box>
                   )}
                   {profile.requirements.experience && (
                     <Box>
                       <Text size="xs" c="dimmed" fw={500}>
-                        Experience
+                        Work Experience
                       </Text>
                       <Text size="sm">
                         {profile.requirements.experience}
@@ -772,6 +888,26 @@ export default function JobProfilePreview({
                       </Text>
                       <Text size="sm">
                         {profile.requirements.certifications}
+                      </Text>
+                    </Box>
+                  )}
+                  {profile.requirements.professional_body_registration && (
+                    <Box>
+                      <Text size="xs" c="dimmed" fw={500}>
+                        Professional Body Registration
+                      </Text>
+                      <Text size="sm">
+                        {profile.requirements.professional_body_registration}
+                      </Text>
+                    </Box>
+                  )}
+                  {profile.requirements.knowledge && (
+                    <Box>
+                      <Text size="xs" c="dimmed" fw={500}>
+                        Knowledge
+                      </Text>
+                      <Text size="sm">
+                        {profile.requirements.knowledge}
                       </Text>
                     </Box>
                   )}

@@ -57,6 +57,11 @@ export interface JPDeliverable {
   deliverable: string;
   sequence: number;
   status: string;
+  // Structured fields (aligned with old EXQI)
+  kpa?: string | null;
+  kpis?: string | null;
+  responsibilities?: string | null;
+  weight?: number | null;
 }
 
 export interface JPRequirement {
@@ -65,6 +70,11 @@ export interface JPRequirement {
   experience: string;
   certifications: string;
   other_requirements: string;
+  // Structured fields (aligned with old EXQI)
+  minimum_qualification?: string | null;
+  preferred_qualification?: string | null;
+  professional_body_registration?: string | null;
+  knowledge?: string | null;
 }
 
 export interface JPReviewer {
