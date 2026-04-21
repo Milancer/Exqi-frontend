@@ -27,6 +27,7 @@ import {
 import {
   IconPlus,
   IconTrash,
+  IconEdit,
   IconEye,
   IconClipboardList,
   IconCheck,
@@ -71,6 +72,8 @@ export default function Interviews() {
   const [availableQuestions, setAvailableQuestions] = useState<InterviewQuestion[]>([]);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<number>>(new Set());
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  // If set, the modal is editing this existing session (otherwise creating a new one)
+  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
 
   const { user } = useAuth();
   const { data: clients = [] } = useClients();
@@ -239,13 +242,23 @@ export default function Interviews() {
     }
 
     try {
-      await api.post("/interviews", {
-        candidate_id: +values.candidate_id,
-        cbi_template_id: +values.cbi_template_id,
-        interviewer_id: +values.interviewer_id,
-        selected_question_ids: Array.from(selectedQuestionIds),
-      });
+      if (editingSessionId) {
+        // Edit existing session — template is fixed, only candidate/interviewer/selection can change
+        await api.patch(`/interviews/${editingSessionId}`, {
+          candidate_id: +values.candidate_id,
+          interviewer_id: +values.interviewer_id,
+          selected_question_ids: Array.from(selectedQuestionIds),
+        });
+      } else {
+        await api.post("/interviews", {
+          candidate_id: +values.candidate_id,
+          cbi_template_id: +values.cbi_template_id,
+          interviewer_id: +values.interviewer_id,
+          selected_question_ids: Array.from(selectedQuestionIds),
+        });
+      }
       setModalOpened(false);
+      setEditingSessionId(null);
       form.reset();
       setAvailableQuestions([]);
       setSelectedQuestionIds(new Set());
@@ -253,10 +266,38 @@ export default function Interviews() {
     } catch (err: any) {
       notifications.show({
         title: "Error",
-        message: err.response?.data?.message || "Failed to create interview",
+        message:
+          err.response?.data?.message ||
+          (editingSessionId
+            ? "Failed to update interview"
+            : "Failed to create interview"),
         color: "red",
       });
     }
+  };
+
+  const openEditInterview = (s: InterviewSession) => {
+    if (s.status === "Completed") {
+      notifications.show({
+        title: "Cannot edit",
+        message:
+          "This interview has been completed. Responses are tied to the original questions.",
+        color: "orange",
+      });
+      return;
+    }
+    setEditingSessionId(s.session_id);
+    form.setValues({
+      candidate_id: String(s.candidate?.candidate_id ?? ""),
+      cbi_template_id: String(s.template?.cbi_template_id ?? ""),
+      interviewer_id: String(s.interviewer?.id ?? ""),
+    });
+    // Pre-fill the selection from the existing snapshot
+    const currentQs = (s as any).questions || [];
+    setSelectedQuestionIds(
+      new Set(currentQs.map((q: any) => q.question_id as number)),
+    );
+    setModalOpened(true);
   };
 
   const handleDownloadPdf = (s: InterviewSession) => {
@@ -264,6 +305,7 @@ export default function Interviews() {
       {
         candidateName: `${s.candidate?.name || ""} ${s.candidate?.surname || ""}`.trim(),
         templateName: s.template?.template_name || "Interview",
+        templateDescription: (s.template as any)?.description || undefined,
         interviewer: s.interviewer
           ? `${s.interviewer.name} ${s.interviewer.surname}`
           : undefined,
@@ -584,7 +626,13 @@ export default function Interviews() {
         </Box>
         <Button
           leftSection={<IconPlus size={16} />}
-          onClick={() => setModalOpened(true)}
+          onClick={() => {
+            setEditingSessionId(null);
+            form.reset();
+            setAvailableQuestions([]);
+            setSelectedQuestionIds(new Set());
+            setModalOpened(true);
+          }}
           variant="gradient"
           gradient={{ from: "indigo", to: "violet", deg: 135 }}
           size="sm"
@@ -724,6 +772,17 @@ export default function Interviews() {
                         </ActionIcon>
                       </Tooltip>
                       {s.status !== "Completed" && (
+                        <Tooltip label="Edit">
+                          <ActionIcon
+                            variant="subtle"
+                            color="teal"
+                            onClick={() => openEditInterview(s)}
+                          >
+                            <IconEdit size={16} />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
+                      {s.status !== "Completed" && (
                         <Tooltip label="Cancel">
                           <ActionIcon
                             variant="subtle"
@@ -743,16 +802,17 @@ export default function Interviews() {
         )}
       </Paper>
 
-      {/* Create Interview Modal */}
+      {/* Create / Edit Interview Modal */}
       <Modal
         opened={modalOpened}
         onClose={() => {
           setModalOpened(false);
+          setEditingSessionId(null);
           form.reset();
           setAvailableQuestions([]);
           setSelectedQuestionIds(new Set());
         }}
-        title="Create Interview"
+        title={editingSessionId ? "Edit Interview" : "Create Interview"}
         size="xl"
       >
         <form onSubmit={form.onSubmit(handleCreate)}>
@@ -777,6 +837,12 @@ export default function Interviews() {
               }))}
               required
               searchable
+              disabled={!!editingSessionId}
+              description={
+                editingSessionId
+                  ? "Template cannot be changed after an interview is created"
+                  : undefined
+              }
               {...form.getInputProps("cbi_template_id")}
             />
             <Select
@@ -889,7 +955,7 @@ export default function Interviews() {
             )}
 
             <Button type="submit" fullWidth mt="sm">
-              Create Interview
+              {editingSessionId ? "Save Changes" : "Create Interview"}
             </Button>
           </Stack>
         </form>
