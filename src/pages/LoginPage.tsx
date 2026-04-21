@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import expLogo from "../assets/logo.svg";
 import {
   Paper,
@@ -18,8 +18,18 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isAuthenticated, isLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  // If the user was bounced here by ProtectedRoute, it attached the original
+  // location to navigation state. Send them back to that URL after sign-in
+  // so that a reviewer clicking a "/job-profiles/:id" link from their email
+  // actually lands on the profile they were invited to.
+  const from = (
+    location.state as { from?: { pathname: string; search?: string } } | null
+  )?.from;
+  const redirectTo = from ? `${from.pathname}${from.search ?? ""}` : "/";
 
   const form = useForm({
     initialValues: {
@@ -35,14 +45,14 @@ export default function LoginPage() {
 
   // Redirect if already authenticated
   if (!isLoading && isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   const handleSubmit = async (values: typeof form.values) => {
     setLoading(true);
     try {
       await login(values.email, values.password);
-      navigate("/");
+      navigate(redirectTo, { replace: true });
     } catch (error: any) {
       notifications.show({
         title: "Sign in failed",

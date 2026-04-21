@@ -92,7 +92,13 @@ export default function ResetPasswordPage() {
           navigate(redirect);
           return;
         } catch {
-          // Auto-login failed; fall through to the standard success state
+          // Auto-login failed. Don't drop the redirect target on the floor:
+          // forward it to the login page via router state so that after the
+          // user signs in manually they still land on the invited profile.
+          navigate("/login", {
+            state: { from: { pathname: redirect, search: "" } },
+          });
+          return;
         }
       }
 

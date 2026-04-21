@@ -91,6 +91,7 @@ export interface JPApprover {
   approver_id: number;
   type: 'reviewer' | 'approver';
   status: 'Pending' | 'Approved' | 'Rejected';
+  round_number: number;
   approved_at: string | null;
   created_at: string;
   approver: {

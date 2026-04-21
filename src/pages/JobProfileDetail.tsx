@@ -1467,88 +1467,129 @@ export default function JobProfileDetail() {
                 </Group>
               </Paper>
 
-              {/* Reviewer & Approver status table */}
-              {profile.approvers && profile.approvers.length > 0 && (
-                <Paper withBorder p="md" radius="md">
-                  <Text size="sm" fw={500} mb="sm">
-                    Review & Approval Status
-                  </Text>
-                  <Table striped highlightOnHover withTableBorder withColumnBorders>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>Role</Table.Th>
-                        <Table.Th>Name</Table.Th>
-                        <Table.Th>Status</Table.Th>
-                        <Table.Th>Signature</Table.Th>
-                        <Table.Th>Date</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {profile.approvers
-                        .sort((a, _b) => (a.type === "reviewer" ? -1 : 1))
-                        .map((app) => (
-                          <Table.Tr key={app.job_profile_approver_id}>
-                            <Table.Td>
-                              <Badge
-                                size="sm"
-                                variant="light"
-                                color={app.type === "reviewer" ? "cyan" : "blue"}
-                              >
-                                {app.type === "reviewer" ? "Reviewer" : "Approver"}
-                              </Badge>
-                            </Table.Td>
-                            <Table.Td>
-                              <Text size="sm" fw={500}>
-                                {app.approver.name} {app.approver.surname}
+              {/* Reviewer & Approver status table — grouped by round so the
+                  full approval history is visible across re-submissions.
+                  The latest round is rendered first. */}
+              {profile.approvers && profile.approvers.length > 0 && (() => {
+                // Group approver rows by round_number. Rows from legacy data
+                // (missing round_number) fall back to round 1.
+                const byRound = new Map<number, typeof profile.approvers>();
+                for (const app of profile.approvers) {
+                  const round = app.round_number ?? 1;
+                  const bucket = byRound.get(round) ?? [];
+                  bucket.push(app);
+                  byRound.set(round, bucket);
+                }
+                const rounds = Array.from(byRound.keys()).sort((a, b) => b - a);
+                const latestRound = rounds[0];
+
+                return (
+                  <Paper withBorder p="md" radius="md">
+                    <Text size="sm" fw={500} mb="sm">
+                      Review & Approval Status
+                    </Text>
+                    <Stack gap="md">
+                      {rounds.map((round) => {
+                        const rows = (byRound.get(round) ?? [])
+                          .slice()
+                          .sort((a, _b) => (a.type === "reviewer" ? -1 : 1));
+                        // Use the earliest created_at in the round as its submission date
+                        const submittedAt = rows
+                          .map((r) => r.created_at)
+                          .filter(Boolean)
+                          .sort()[0];
+                        return (
+                          <Box key={round}>
+                            <Group justify="space-between" mb={4}>
+                              <Text size="xs" fw={600} c="dimmed">
+                                Round {round}
+                                {round === latestRound ? " (current)" : ""}
                               </Text>
-                              <Text size="xs" c="dimmed">
-                                {app.approver.email}
-                              </Text>
-                            </Table.Td>
-                            <Table.Td ta="center">
-                              <Badge
-                                size="sm"
-                                color={
-                                  app.status === "Approved"
-                                    ? "green"
-                                    : app.status === "Rejected"
-                                      ? "red"
-                                      : "yellow"
-                                }
-                              >
-                                {app.status}
-                              </Badge>
-                            </Table.Td>
-                            <Table.Td ta="center">
-                              {app.status === "Approved" && app.approver.signature ? (
-                                <Image
-                                  src={app.approver.signature}
-                                  alt={`${app.approver.name} signature`}
-                                  h={40}
-                                  w={120}
-                                  fit="contain"
-                                />
-                              ) : app.status === "Approved" ? (
-                                <Text size="xs" c="dimmed" fs="italic">
-                                  No signature on file
+                              {submittedAt && (
+                                <Text size="xs" c="dimmed">
+                                  Submitted {new Date(submittedAt).toLocaleDateString()}
                                 </Text>
-                              ) : (
-                                <Text size="xs" c="dimmed">—</Text>
                               )}
-                            </Table.Td>
-                            <Table.Td>
-                              <Text size="sm">
-                                {app.approved_at
-                                  ? new Date(app.approved_at).toLocaleDateString()
-                                  : "—"}
-                              </Text>
-                            </Table.Td>
-                          </Table.Tr>
-                        ))}
-                    </Table.Tbody>
-                  </Table>
-                </Paper>
-              )}
+                            </Group>
+                            <Table striped highlightOnHover withTableBorder withColumnBorders>
+                              <Table.Thead>
+                                <Table.Tr>
+                                  <Table.Th>Role</Table.Th>
+                                  <Table.Th>Name</Table.Th>
+                                  <Table.Th>Status</Table.Th>
+                                  <Table.Th>Signature</Table.Th>
+                                  <Table.Th>Date</Table.Th>
+                                </Table.Tr>
+                              </Table.Thead>
+                              <Table.Tbody>
+                                {rows.map((app) => (
+                                  <Table.Tr key={app.job_profile_approver_id}>
+                                    <Table.Td>
+                                      <Badge
+                                        size="sm"
+                                        variant="light"
+                                        color={app.type === "reviewer" ? "cyan" : "blue"}
+                                      >
+                                        {app.type === "reviewer" ? "Reviewer" : "Approver"}
+                                      </Badge>
+                                    </Table.Td>
+                                    <Table.Td>
+                                      <Text size="sm" fw={500}>
+                                        {app.approver.name} {app.approver.surname}
+                                      </Text>
+                                      <Text size="xs" c="dimmed">
+                                        {app.approver.email}
+                                      </Text>
+                                    </Table.Td>
+                                    <Table.Td ta="center">
+                                      <Badge
+                                        size="sm"
+                                        color={
+                                          app.status === "Approved"
+                                            ? "green"
+                                            : app.status === "Rejected"
+                                              ? "red"
+                                              : "yellow"
+                                        }
+                                      >
+                                        {app.status}
+                                      </Badge>
+                                    </Table.Td>
+                                    <Table.Td ta="center">
+                                      {app.status === "Approved" && app.approver.signature ? (
+                                        <Image
+                                          src={app.approver.signature}
+                                          alt={`${app.approver.name} signature`}
+                                          h={40}
+                                          w={120}
+                                          fit="contain"
+                                        />
+                                      ) : app.status === "Approved" ? (
+                                        <Text size="xs" c="dimmed" fs="italic">
+                                          No signature on file
+                                        </Text>
+                                      ) : (
+                                        <Text size="xs" c="dimmed">—</Text>
+                                      )}
+                                    </Table.Td>
+                                    <Table.Td>
+                                      <Text size="sm">
+                                        {app.approved_at
+                                          ? new Date(app.approved_at).toLocaleDateString()
+                                          : "—"}
+                                      </Text>
+                                    </Table.Td>
+                                  </Table.Tr>
+                                ))}
+                              </Table.Tbody>
+                            </Table>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  </Paper>
+                );
+              })()}
 
               {/* Creator view: submit for review (assign reviewer + approver upfront) */}
               {profile.status === "In Progress" && (
