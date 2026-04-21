@@ -36,6 +36,7 @@ import {
   IconFileDescription,
   IconPlus,
   IconTrash,
+  IconEdit,
   IconShieldCheck,
   IconCheck,
   IconX,
@@ -115,8 +116,12 @@ export default function JobProfileDetail() {
   const [addSkillLevel, setAddSkillLevel] = useState<number>(3);
   const [addSkillCritical, setAddSkillCritical] = useState(false);
 
-  // Deliverables
-  const [addDeliverable, setAddDeliverable] = useState("");
+  // Deliverables — full KPA/KPIs/Responsibilities editor
+  const [deliverableModalOpen, setDeliverableModalOpen] = useState(false);
+  const [editingDeliverableId, setEditingDeliverableId] = useState<number | null>(null);
+  const [deliverableKpa, setDeliverableKpa] = useState("");
+  const [deliverableKpis, setDeliverableKpis] = useState("");
+  const [deliverableResponsibilities, setDeliverableResponsibilities] = useState("");
 
   // Requirements
   const [reqEducation, setReqEducation] = useState("");
@@ -442,26 +447,80 @@ export default function JobProfileDetail() {
   };
 
   // Deliverables
-  const handleAddDeliverable = async () => {
-    if (!profile || !addDeliverable.trim()) return;
-    const seq = (profile.deliverables?.length || 0) + 1;
+  const openAddDeliverable = () => {
+    setEditingDeliverableId(null);
+    setDeliverableKpa("");
+    setDeliverableKpis("");
+    setDeliverableResponsibilities("");
+    setDeliverableModalOpen(true);
+  };
+
+  const openEditDeliverable = (d: {
+    job_profile_deliverable_id: number;
+    kpa?: string | null;
+    kpis?: string | null;
+    responsibilities?: string | null;
+    deliverable?: string;
+  }) => {
+    setEditingDeliverableId(d.job_profile_deliverable_id);
+    setDeliverableKpa(d.kpa || d.deliverable || "");
+    setDeliverableKpis(d.kpis || "");
+    setDeliverableResponsibilities(d.responsibilities || "");
+    setDeliverableModalOpen(true);
+  };
+
+  const handleSaveDeliverable = async () => {
+    if (!profile) return;
+    const kpa = deliverableKpa.trim();
+    if (!kpa) {
+      notifications.show({
+        title: "KPA is required",
+        message: "Enter a Key Performance Area before saving.",
+        color: "orange",
+      });
+      return;
+    }
     try {
       setSaving(true);
-      await api.post(`/job-profiles/${profile.job_profile_id}/deliverables`, {
-        deliverable: addDeliverable,
-        sequence: seq,
-      });
-      notifications.show({
-        title: "Added",
-        message: "Deliverable added",
-        color: "green",
-      });
-      setAddDeliverable("");
+      const payload = {
+        kpa,
+        kpis: deliverableKpis || "",
+        responsibilities: deliverableResponsibilities || "",
+        // `deliverable` (NOT NULL legacy column) mirrors the KPA
+        deliverable: kpa,
+      };
+      if (editingDeliverableId) {
+        await api.patch(
+          `/job-profiles/${profile.job_profile_id}/deliverables/${editingDeliverableId}`,
+          payload,
+        );
+        notifications.show({
+          title: "Updated",
+          message: "Deliverable updated",
+          color: "green",
+        });
+      } else {
+        const seq = (profile.deliverables?.length || 0) + 1;
+        await api.post(`/job-profiles/${profile.job_profile_id}/deliverables`, {
+          ...payload,
+          sequence: seq,
+        });
+        notifications.show({
+          title: "Added",
+          message: "Deliverable added",
+          color: "green",
+        });
+      }
+      setDeliverableModalOpen(false);
+      setEditingDeliverableId(null);
+      setDeliverableKpa("");
+      setDeliverableKpis("");
+      setDeliverableResponsibilities("");
       await refreshProfile();
     } catch (e: any) {
       notifications.show({
         title: "Error",
-        message: e.response?.data?.message || "Failed to add deliverable",
+        message: e.response?.data?.message || "Failed to save deliverable",
         color: "red",
       });
     } finally {
@@ -1231,28 +1290,20 @@ export default function JobProfileDetail() {
                 List the key deliverables for this role.
               </Text>
 
-              <Paper withBorder p="sm" radius="md">
-                <Group align="end">
-                  <TextInput
-                    label="Deliverable"
-                    placeholder="e.g., Monthly performance reports"
-                    value={addDeliverable}
-                    onChange={(e) => setAddDeliverable(e.currentTarget.value)}
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    leftSection={<IconPlus size={14} />}
-                    onClick={handleAddDeliverable}
-                    disabled={!addDeliverable.trim()}
-                  >
-                    Add
-                  </Button>
-                </Group>
-              </Paper>
+              <Group justify="flex-end">
+                <Button
+                  leftSection={<IconPlus size={14} />}
+                  onClick={openAddDeliverable}
+                  variant="light"
+                >
+                  Add Deliverable
+                </Button>
+              </Group>
 
               {profile.deliverables && profile.deliverables.length > 0 ? (
                 <Stack gap="sm">
                   {profile.deliverables
+                    .slice()
                     .sort((a, b) => a.sequence - b.sequence)
                     .map((d) => {
                       const hasStructured = !!(d.kpa || d.kpis || d.responsibilities);
@@ -1271,17 +1322,16 @@ export default function JobProfileDetail() {
                           p="md"
                           radius="md"
                         >
-                          <Group justify="space-between" align="flex-start" mb="xs">
-                            <Group gap="xs">
-                              <Badge variant="light" color="gray" size="sm">
-                                #{d.sequence}
-                              </Badge>
-                              {d.weight !== null && d.weight !== undefined && (
-                                <Badge variant="light" color="indigo" size="sm">
-                                  Weight {d.weight}
-                                </Badge>
-                              )}
-                            </Group>
+                          <Group justify="flex-end" mb="xs" gap={4}>
+                            <Tooltip label="Edit">
+                              <ActionIcon
+                                variant="subtle"
+                                color="blue"
+                                onClick={() => openEditDeliverable(d)}
+                              >
+                                <IconEdit size={14} />
+                              </ActionIcon>
+                            </Tooltip>
                             <Tooltip label="Remove">
                               <ActionIcon
                                 variant="subtle"
@@ -1839,6 +1889,60 @@ export default function JobProfileDetail() {
           </Tabs.Panel>
         </Tabs>
       </Paper>
+
+      {/* ─── Deliverable Add/Edit modal ─── */}
+      <Modal
+        opened={deliverableModalOpen}
+        onClose={() => setDeliverableModalOpen(false)}
+        title={editingDeliverableId ? "Edit Deliverable" : "Add Deliverable"}
+        centered
+        size="lg"
+      >
+        <Stack gap="md">
+          <TextInput
+            label="KPA (Key Performance Area)"
+            description="One-line headline for this deliverable"
+            placeholder="e.g., Develop and maintain core platform features"
+            value={deliverableKpa}
+            onChange={(e) => setDeliverableKpa(e.currentTarget.value)}
+            required
+            autoFocus
+          />
+          <Textarea
+            label="KPIs"
+            description="One KPI per line"
+            placeholder={"e.g.\nSystem uptime 99.9%\nMean time to recovery < 1h"}
+            value={deliverableKpis}
+            onChange={(e) => setDeliverableKpis(e.currentTarget.value)}
+            minRows={4}
+            autosize
+          />
+          <Textarea
+            label="Responsibilities"
+            description="One responsibility per line"
+            placeholder={"e.g.\nMonitor production health\nRespond to on-call alerts"}
+            value={deliverableResponsibilities}
+            onChange={(e) => setDeliverableResponsibilities(e.currentTarget.value)}
+            minRows={6}
+            autosize
+          />
+          <Group justify="flex-end">
+            <Button
+              variant="subtle"
+              onClick={() => setDeliverableModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveDeliverable}
+              loading={saving}
+              disabled={!deliverableKpa.trim()}
+            >
+              {editingDeliverableId ? "Save Changes" : "Add Deliverable"}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       {/* ─── Review confirmation modal ─── */}
       <Modal

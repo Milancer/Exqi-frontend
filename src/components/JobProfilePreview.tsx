@@ -163,8 +163,13 @@ const JobProfilePDF = ({
   profile: JobProfile;
   clientLogo?: string | null;
 }) => {
+  // Show ALL current-round approver rows (reviewer + approver) regardless of
+  // status. The Approvals section is always rendered in the PDF — even when
+  // no approver has been selected yet or no action has been taken.
+  const allRounds = (profile.approvers || []).map((a) => a.round_number ?? 1);
+  const latestRound = allRounds.length > 0 ? Math.max(...allRounds) : 0;
   const approvedApprovers = (profile.approvers || [])
-    .filter((a) => a.status === "Approved")
+    .filter((a) => (a.round_number ?? 1) === latestRound)
     .sort((a, _b) => (a.type === "reviewer" ? -1 : 1));
 
   return (
@@ -337,9 +342,6 @@ const JobProfilePDF = ({
                   <View key={idx} style={{ marginBottom: 10 }} wrap={false}>
                     <PDFText style={{ fontWeight: "bold", fontSize: 10, marginBottom: 2 }}>
                       {idx + 1}. {del.kpa || del.deliverable}
-                      {del.weight !== null && del.weight !== undefined
-                        ? `   (Weight ${del.weight})`
-                        : ""}
                     </PDFText>
                     {hasStructured && kpiLines.length > 0 && (
                       <View style={{ marginLeft: 12, marginTop: 2 }}>
@@ -434,55 +436,98 @@ const JobProfilePDF = ({
           </View>
         )}
 
-        {/* Signatures / Approvals Table */}
-        {approvedApprovers.length > 0 && (
-          <View style={pdfStyles.section}>
-            <PDFText style={pdfStyles.sectionHeader}>APPROVALS</PDFText>
-            <View style={pdfStyles.table}>
-              <View style={pdfStyles.tableHeader}>
-                <PDFText style={[pdfStyles.tableCell, { width: "18%" }]}>
-                  Role
-                </PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "25%" }]}>
-                  Name
-                </PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "35%" }]}>
-                  Signature
-                </PDFText>
-                <PDFText style={[pdfStyles.tableCell, { width: "22%" }]}>
-                  Date
-                </PDFText>
-              </View>
-              {approvedApprovers.map((app, idx) => (
+        {/* Signatures / Approvals Table — always rendered, even when empty */}
+        <View style={pdfStyles.section}>
+          <PDFText style={pdfStyles.sectionHeader}>APPROVALS</PDFText>
+          <View style={pdfStyles.table}>
+            <View style={pdfStyles.tableHeader}>
+              <PDFText style={[pdfStyles.tableCell, { width: "18%" }]}>
+                Role
+              </PDFText>
+              <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>
+                Name
+              </PDFText>
+              <PDFText style={[pdfStyles.tableCell, { width: "15%" }]}>
+                Status
+              </PDFText>
+              <PDFText style={[pdfStyles.tableCell, { width: "27%" }]}>
+                Signature
+              </PDFText>
+              <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>
+                Date
+              </PDFText>
+            </View>
+            {approvedApprovers.length > 0 ? (
+              approvedApprovers.map((app, idx) => (
                 <View key={idx} style={pdfStyles.tableRow} wrap={false}>
                   <PDFText style={[pdfStyles.tableCell, { width: "18%" }]}>
                     {app.type === "reviewer" ? "Reviewer" : "Approver"}
                   </PDFText>
-                  <PDFText style={[pdfStyles.tableCell, { width: "25%" }]}>
+                  <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>
                     {app.approver.name} {app.approver.surname}
                   </PDFText>
-                  <View style={[pdfStyles.signatureCell, { width: "35%" }]}>
-                    {app.approver.signature ? (
+                  <PDFText style={[pdfStyles.tableCell, { width: "15%" }]}>
+                    {app.status}
+                  </PDFText>
+                  <View style={[pdfStyles.signatureCell, { width: "27%" }]}>
+                    {app.status === "Approved" && app.approver.signature ? (
                       <PDFImage
                         src={app.approver.signature}
                         style={pdfStyles.signatureImage}
                       />
                     ) : (
                       <PDFText style={{ fontSize: 8, color: "#999" }}>
-                        No signature on file
+                        {app.status === "Approved" ? "No signature on file" : "—"}
                       </PDFText>
                     )}
                   </View>
-                  <PDFText style={[pdfStyles.tableCell, { width: "22%" }]}>
+                  <PDFText style={[pdfStyles.tableCell, { width: "20%" }]}>
                     {app.approved_at
                       ? new Date(app.approved_at).toLocaleDateString()
-                      : "N/A"}
+                      : "—"}
                   </PDFText>
                 </View>
-              ))}
-            </View>
+              ))
+            ) : (
+              <>
+                <View style={pdfStyles.tableRow} wrap={false}>
+                  <PDFText style={[pdfStyles.tableCell, { width: "18%" }]}>
+                    Reviewer
+                  </PDFText>
+                  <PDFText style={[pdfStyles.tableCell, { width: "20%", color: "#999" }]}>
+                    Not assigned
+                  </PDFText>
+                  <PDFText style={[pdfStyles.tableCell, { width: "15%", color: "#999" }]}>
+                    —
+                  </PDFText>
+                  <PDFText style={[pdfStyles.tableCell, { width: "27%", color: "#999" }]}>
+                    —
+                  </PDFText>
+                  <PDFText style={[pdfStyles.tableCell, { width: "20%", color: "#999" }]}>
+                    —
+                  </PDFText>
+                </View>
+                <View style={pdfStyles.tableRow} wrap={false}>
+                  <PDFText style={[pdfStyles.tableCell, { width: "18%" }]}>
+                    Approver
+                  </PDFText>
+                  <PDFText style={[pdfStyles.tableCell, { width: "20%", color: "#999" }]}>
+                    Not assigned
+                  </PDFText>
+                  <PDFText style={[pdfStyles.tableCell, { width: "15%", color: "#999" }]}>
+                    —
+                  </PDFText>
+                  <PDFText style={[pdfStyles.tableCell, { width: "27%", color: "#999" }]}>
+                    —
+                  </PDFText>
+                  <PDFText style={[pdfStyles.tableCell, { width: "20%", color: "#999" }]}>
+                    —
+                  </PDFText>
+                </View>
+              </>
+            )}
           </View>
-        )}
+        </View>
 
         {/* Footer */}
         <View style={pdfStyles.footer} fixed>
@@ -781,7 +826,7 @@ export default function JobProfilePreview({
                 <Stack gap="sm">
                   {profile.deliverables
                     .sort((a, b) => a.sequence - b.sequence)
-                    .map((del, idx) => {
+                    .map((del) => {
                       const hasStructured = !!(del.kpa || del.kpis || del.responsibilities);
                       const kpiLines = (del.kpis || "")
                         .split("\n")
@@ -797,16 +842,6 @@ export default function JobProfilePreview({
                           p="sm"
                           withBorder
                         >
-                          <Group gap="xs" mb={4}>
-                            <Badge size="sm" variant="light" color="gray">
-                              #{idx + 1}
-                            </Badge>
-                            {del.weight !== null && del.weight !== undefined && (
-                              <Badge size="sm" variant="light" color="indigo">
-                                Weight {del.weight}
-                              </Badge>
-                            )}
-                          </Group>
                           {hasStructured ? (
                             <Stack gap="xs">
                               {del.kpa && (
