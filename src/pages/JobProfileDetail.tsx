@@ -369,33 +369,59 @@ export default function JobProfileDetail() {
     }
   }, []);
 
-  // Load BP groups once on mount
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const groups = await getBusinessProcessGroups();
-        if (!cancelled) setBpGroups(groups);
-      } catch {
-        /* silent — BP catalogue may not be seeded yet */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+  // The full profile is needed by every tab (titles, badges, status indicator
+  // etc render in the page header), so it loads on mount. Reference data for
+  // each tab is loaded lazily — see the tab-activation effect below.
   useEffect(() => {
     fetchProfile();
-    fetchCompetencies();
-    fetchProfileOptions();
-    fetchReferenceData();
-    fetchCandidates();
+  }, [fetchProfile]);
+
+  // Per-tab "have we loaded this tab's reference data yet?" guards.
+  // Refs (not state) so flipping them doesn't trigger a re-render.
+  const loadedDescriptionRef = useRef(false);
+  const loadedCompetenciesRef = useRef(false);
+  const loadedApprovalRef = useRef(false);
+  const loadedBusinessProcessRef = useRef(false);
+
+  // Lazy-load each tab's reference data the first time the user opens it.
+  // Subsequent activations of the same tab are free.
+  useEffect(() => {
+    if (activeTab === "description" && !loadedDescriptionRef.current) {
+      loadedDescriptionRef.current = true;
+      fetchProfileOptions();
+      fetchReferenceData();
+    } else if (
+      activeTab === "competencies" &&
+      !loadedCompetenciesRef.current
+    ) {
+      loadedCompetenciesRef.current = true;
+      fetchCompetencies();
+    } else if (activeTab === "approval" && !loadedApprovalRef.current) {
+      loadedApprovalRef.current = true;
+      fetchCandidates();
+    } else if (
+      activeTab === "business-process" &&
+      !loadedBusinessProcessRef.current
+    ) {
+      loadedBusinessProcessRef.current = true;
+      let cancelled = false;
+      (async () => {
+        try {
+          const groups = await getBusinessProcessGroups();
+          if (!cancelled) setBpGroups(groups);
+        } catch {
+          /* silent — BP catalogue may not be seeded yet */
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
   }, [
-    fetchProfile,
-    fetchCompetencies,
+    activeTab,
     fetchProfileOptions,
     fetchReferenceData,
+    fetchCompetencies,
     fetchCandidates,
   ]);
 
