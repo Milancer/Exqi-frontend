@@ -462,14 +462,16 @@ export default function JobProfiles() {
             Create and manage job profiles with competency mapping
           </Text>
         </Box>
-        <Button
-          leftSection={<IconPlus size={16} />}
-          onClick={openCreate}
-          variant="gradient"
-          gradient={{ from: "grape", to: "violet", deg: 135 }}
-        >
-          Create Job Profile
-        </Button>
+        <Group gap="sm">
+          <Button
+            leftSection={<IconPlus size={16} />}
+            onClick={openCreate}
+            variant="gradient"
+            gradient={{ from: "grape", to: "violet", deg: 135 }}
+          >
+            Create Job Profile
+          </Button>
+        </Group>
       </Group>
 
       {/* Filters */}

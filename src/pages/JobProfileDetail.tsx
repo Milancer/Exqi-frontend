@@ -18,6 +18,10 @@ import {
   NumberInput,
   Switch,
   Select,
+  MultiSelect,
+  Timeline,
+  Code,
+  ScrollArea,
   Loader,
   Center,
   Modal,
@@ -38,6 +42,9 @@ import {
   IconTrash,
   IconEdit,
   IconShieldCheck,
+  IconSitemap,
+  IconHistory,
+  IconEye,
   IconCheck,
   IconX,
   IconSend,
@@ -51,7 +58,12 @@ import type {
   JpCompetency,
   JPCompetencyLink,
   JPReviewer,
+  BusinessProcessNode,
 } from "../services/job-profiles/interfaces";
+import {
+  getBusinessProcessGroups,
+  getBusinessProcessTree,
+} from "../services/business-processes";
 
 const statusColors: Record<string, string> = {
   "In Progress": "blue",
@@ -144,6 +156,102 @@ export default function JobProfileDetail() {
   const [reviewConfirmOpen, setReviewConfirmOpen] = useState(false);
   const [reviewAction, setReviewAction] = useState<"approve" | "reject">("approve");
   const [reviewActionType, setReviewActionType] = useState<"reviewer" | "approver">("reviewer");
+
+  /* ─── Business Process picker (item 4.2) ─── */
+  const [bpGroups, setBpGroups] = useState<BusinessProcessNode[]>([]);
+  // Cached subtree per group code; keyed by group.code (e.g. "Enterprise")
+  const [bpTreeByGroup, setBpTreeByGroup] = useState<Record<string, BusinessProcessNode[]>>({});
+  const [bpSelectedGroup, setBpSelectedGroup] = useState<string | null>(null);
+  const [bpSelectedProcessIds, setBpSelectedProcessIds] = useState<number[]>([]);
+  const [bpSelectedSubProcessIds, setBpSelectedSubProcessIds] = useState<number[]>([]);
+  const [bpSelectedProcedureIds, setBpSelectedProcedureIds] = useState<number[]>([]);
+  const [bpSaving, setBpSaving] = useState(false);
+
+  /* ─── Audit log / history (item 1.5) ─── */
+  type JobProfileAuditEntry = {
+    id: number;
+    event_type: string;
+    summary: string | null;
+    comment: string | null;
+    changes: Array<{ field: string; old: unknown; new: unknown }> | null;
+    snapshot: Record<string, unknown> | null;
+    created_at: string;
+    user?: { id: number; name?: string; surname?: string; email?: string } | null;
+  };
+  const [auditEntries, setAuditEntries] = useState<JobProfileAuditEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [snapshotOpen, setSnapshotOpen] = useState(false);
+  const [snapshotEntry, setSnapshotEntry] = useState<JobProfileAuditEntry | null>(null);
+
+  /* ─── Hydrate BP selection whenever profile loads / refreshes ─── */
+  useEffect(() => {
+    if (!profile?.businessProcesses) {
+      setBpSelectedProcessIds([]);
+      setBpSelectedSubProcessIds([]);
+      setBpSelectedProcedureIds([]);
+      return;
+    }
+    const procIds: number[] = [];
+    const subProcIds: number[] = [];
+    const procedureIds: number[] = [];
+    let firstGroup: string | null = null;
+    for (const j of profile.businessProcesses) {
+      const node = j.node;
+      if (!node) continue;
+      if (node.level === 'process') procIds.push(node.id);
+      else if (node.level === 'sub_process') subProcIds.push(node.id);
+      else if (node.level === 'procedure') procedureIds.push(node.id);
+      // Derive Group from the code prefix on first hit
+      if (!firstGroup) {
+        const c = (node.code || '').charAt(0);
+        firstGroup = c === 'M' ? 'Enterprise' : c === 'C' ? 'Core' : c === 'S' ? 'Support' : null;
+      }
+    }
+    setBpSelectedProcessIds(procIds);
+    setBpSelectedSubProcessIds(subProcIds);
+    setBpSelectedProcedureIds(procedureIds);
+    if (firstGroup) setBpSelectedGroup(firstGroup);
+  }, [profile?.job_profile_id, profile?.businessProcesses]);
+
+  /* ─── On Group change, fetch (and cache) the subtree ─── */
+  useEffect(() => {
+    if (!bpSelectedGroup) return;
+    if (bpTreeByGroup[bpSelectedGroup]) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const trees = await getBusinessProcessTree(bpSelectedGroup);
+        if (cancelled) return;
+        setBpTreeByGroup((prev) => ({ ...prev, [bpSelectedGroup]: trees }));
+      } catch {
+        /* silent */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bpSelectedGroup]);
+
+  /* ─── Audit log fetch — runs whenever the user opens the History tab ─── */
+  useEffect(() => {
+    if (activeTab !== 'history' || !profileId) return;
+    let cancelled = false;
+    setAuditLoading(true);
+    api
+      .get(`/job-profiles/${profileId}/audit-log`)
+      .then((res) => {
+        if (!cancelled) setAuditEntries(res.data || []);
+      })
+      .catch(() => {
+        if (!cancelled) setAuditEntries([]);
+      })
+      .finally(() => {
+        if (!cancelled) setAuditLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, profileId, profile?.updated]);
 
   /* ─── Description form ─── */
   const descForm = useForm({
@@ -259,6 +367,22 @@ export default function JobProfileDetail() {
     } catch {
       /* silent */
     }
+  }, []);
+
+  // Load BP groups once on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const groups = await getBusinessProcessGroups();
+        if (!cancelled) setBpGroups(groups);
+      } catch {
+        /* silent — BP catalogue may not be seeded yet */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -744,6 +868,15 @@ export default function JobProfileDetail() {
               </Badge>
             </Tabs.Tab>
             <Tabs.Tab
+              value="business-process"
+              leftSection={<IconSitemap size={14} />}
+            >
+              Business Process{" "}
+              <Badge size="xs" variant="light" color="grape" ml={4}>
+                {(profile.businessProcesses?.length) || 0}
+              </Badge>
+            </Tabs.Tab>
+            <Tabs.Tab
               value="approval"
               leftSection={<IconShieldCheck size={14} />}
             >
@@ -753,6 +886,12 @@ export default function JobProfileDetail() {
                   !
                 </Badge>
               )}
+            </Tabs.Tab>
+            <Tabs.Tab
+              value="history"
+              leftSection={<IconHistory size={14} />}
+            >
+              History
             </Tabs.Tab>
           </Tabs.List>
 
@@ -1474,6 +1613,188 @@ export default function JobProfileDetail() {
             </Stack>
           </Tabs.Panel>
 
+          {/* ─── Business Process Tab (item 4.2) ─── */}
+          <Tabs.Panel value="business-process" pt="md">
+            <Stack>
+              <Text size="sm" c="dimmed">
+                Map this Job Profile to one or more SITA Business Processes.
+                Pick the Group first, then any combination of Process,
+                Sub-Process and Procedure that applies. Selections persist on
+                Save.
+              </Text>
+
+              <Group grow>
+                <Select
+                  label="Group"
+                  placeholder="Pick a Group"
+                  data={bpGroups.map((g) => ({ value: g.code, label: g.name }))}
+                  value={bpSelectedGroup}
+                  onChange={(v) => {
+                    setBpSelectedGroup(v);
+                    // Clear lower-level selections when Group changes
+                    setBpSelectedProcessIds([]);
+                    setBpSelectedSubProcessIds([]);
+                    setBpSelectedProcedureIds([]);
+                  }}
+                  clearable
+                  searchable
+                />
+              </Group>
+
+              {(() => {
+                const groupTree = bpSelectedGroup
+                  ? (bpTreeByGroup[bpSelectedGroup]?.[0]?.children ?? [])
+                  : [];
+                const processOptions = groupTree.map((p) => ({
+                  value: String(p.id),
+                  label: `${p.code} — ${p.name}`,
+                }));
+                const allowedSubProcessNodes = groupTree
+                  .filter((p) => bpSelectedProcessIds.includes(p.id))
+                  .flatMap((p) => p.children ?? []);
+                const subProcessOptions = allowedSubProcessNodes.map((sp) => ({
+                  value: String(sp.id),
+                  label: `${sp.code} — ${sp.name}`,
+                }));
+                const allowedProcedureNodes = allowedSubProcessNodes
+                  .filter((sp) => bpSelectedSubProcessIds.includes(sp.id))
+                  .flatMap((sp) => sp.children ?? []);
+                const procedureOptions = allowedProcedureNodes.map((pr) => ({
+                  value: String(pr.id),
+                  label: `${pr.code} — ${pr.name}`,
+                }));
+
+                return (
+                  <Stack>
+                    <MultiSelect
+                      label="Process"
+                      placeholder={
+                        bpSelectedGroup
+                          ? "Pick one or more Processes"
+                          : "Pick a Group first"
+                      }
+                      data={processOptions}
+                      value={bpSelectedProcessIds.map(String)}
+                      onChange={(vals) => {
+                        const ids = vals.map(Number);
+                        setBpSelectedProcessIds(ids);
+                        // Drop any sub/procedure picks whose ancestor was unpicked
+                        setBpSelectedSubProcessIds((prev) =>
+                          prev.filter((spId) =>
+                            groupTree.some(
+                              (p) =>
+                                ids.includes(p.id) &&
+                                (p.children ?? []).some((sp) => sp.id === spId),
+                            ),
+                          ),
+                        );
+                        setBpSelectedProcedureIds((prev) =>
+                          prev.filter((prId) =>
+                            groupTree.some(
+                              (p) =>
+                                ids.includes(p.id) &&
+                                (p.children ?? []).some((sp) =>
+                                  (sp.children ?? []).some(
+                                    (pr) => pr.id === prId,
+                                  ),
+                                ),
+                            ),
+                          ),
+                        );
+                      }}
+                      searchable
+                      clearable
+                      disabled={!bpSelectedGroup}
+                    />
+
+                    <MultiSelect
+                      label="Sub-Process"
+                      placeholder={
+                        bpSelectedProcessIds.length === 0
+                          ? "Pick a Process first"
+                          : "Pick one or more Sub-Processes"
+                      }
+                      data={subProcessOptions}
+                      value={bpSelectedSubProcessIds.map(String)}
+                      onChange={(vals) => {
+                        const ids = vals.map(Number);
+                        setBpSelectedSubProcessIds(ids);
+                        setBpSelectedProcedureIds((prev) =>
+                          prev.filter((prId) =>
+                            allowedSubProcessNodes.some(
+                              (sp) =>
+                                ids.includes(sp.id) &&
+                                (sp.children ?? []).some(
+                                  (pr) => pr.id === prId,
+                                ),
+                            ),
+                          ),
+                        );
+                      }}
+                      searchable
+                      clearable
+                      disabled={bpSelectedProcessIds.length === 0}
+                    />
+
+                    <MultiSelect
+                      label="Procedure"
+                      placeholder={
+                        bpSelectedSubProcessIds.length === 0
+                          ? "Pick a Sub-Process first"
+                          : "Pick one or more Procedures"
+                      }
+                      data={procedureOptions}
+                      value={bpSelectedProcedureIds.map(String)}
+                      onChange={(vals) =>
+                        setBpSelectedProcedureIds(vals.map(Number))
+                      }
+                      searchable
+                      clearable
+                      disabled={bpSelectedSubProcessIds.length === 0}
+                    />
+                  </Stack>
+                );
+              })()}
+
+              <Group justify="flex-end">
+                <Button
+                  loading={bpSaving}
+                  variant="gradient"
+                  gradient={{ from: "grape", to: "violet", deg: 135 }}
+                  onClick={async () => {
+                    setBpSaving(true);
+                    try {
+                      const ids = [
+                        ...bpSelectedProcessIds,
+                        ...bpSelectedSubProcessIds,
+                        ...bpSelectedProcedureIds,
+                      ];
+                      await api.patch(`/job-profiles/${profileId}`, {
+                        business_process_node_ids: ids,
+                      });
+                      notifications.show({
+                        title: "Saved",
+                        message: "Business Process selections saved",
+                        color: "green",
+                      });
+                      await refreshProfile();
+                    } catch {
+                      notifications.show({
+                        title: "Error",
+                        message: "Failed to save Business Process selections",
+                        color: "red",
+                      });
+                    } finally {
+                      setBpSaving(false);
+                    }
+                  }}
+                >
+                  Save Business Processes
+                </Button>
+              </Group>
+            </Stack>
+          </Tabs.Panel>
+
           {/* ─── Approval Tab ─── */}
           <Tabs.Panel value="approval" pt="md">
             <Stack>
@@ -1887,8 +2208,131 @@ export default function JobProfileDetail() {
               )}
             </Stack>
           </Tabs.Panel>
+
+          {/* ─── History / Audit Log Tab (item 1.5) ─── */}
+          <Tabs.Panel value="history" pt="md">
+            <Stack>
+              <Text size="sm" c="dimmed">
+                Every state-changing event on this job profile is logged with
+                an immutable JSON snapshot. Newest first.
+              </Text>
+
+              {auditLoading ? (
+                <Center py="xl">
+                  <Loader />
+                </Center>
+              ) : auditEntries.length === 0 ? (
+                <Text c="dimmed" size="sm">
+                  No audit entries yet.
+                </Text>
+              ) : (
+                <Timeline active={0} bulletSize={20} lineWidth={2}>
+                  {auditEntries.map((e) => {
+                    const actor = e.user
+                      ? `${e.user.name ?? ""} ${e.user.surname ?? ""}`.trim() ||
+                        e.user.email ||
+                        `user #${e.user.id}`
+                      : "system";
+                    const eventColors: Record<string, string> = {
+                      created: "blue",
+                      updated: "indigo",
+                      submitted_for_review: "orange",
+                      reviewer_approved: "teal",
+                      reviewer_rejected: "red",
+                      approver_approved: "green",
+                      approver_rejected: "red",
+                      reverted_to_in_progress: "gray",
+                    };
+                    return (
+                      <Timeline.Item
+                        key={e.id}
+                        title={
+                          <Group gap="xs">
+                            <Badge
+                              size="sm"
+                              variant="light"
+                              color={eventColors[e.event_type] || "gray"}
+                            >
+                              {e.event_type.replace(/_/g, " ")}
+                            </Badge>
+                            <Text size="sm" fw={500}>
+                              {actor}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              {new Date(e.created_at).toLocaleString()}
+                            </Text>
+                          </Group>
+                        }
+                      >
+                        {e.summary && (
+                          <Text size="sm" mt={4}>
+                            {e.summary}
+                          </Text>
+                        )}
+                        {e.comment && (
+                          <Text size="sm" c="dimmed" fs="italic" mt={2}>
+                            "{e.comment}"
+                          </Text>
+                        )}
+                        {e.changes && e.changes.length > 0 && (
+                          <Box mt={6}>
+                            <Text size="xs" c="dimmed" mb={2}>
+                              Changes:
+                            </Text>
+                            <Stack gap={2}>
+                              {e.changes.map((c, idx) => (
+                                <Text key={idx} size="xs">
+                                  <b>{c.field}</b>:{" "}
+                                  <Code>{JSON.stringify(c.old)}</Code> →{" "}
+                                  <Code>{JSON.stringify(c.new)}</Code>
+                                </Text>
+                              ))}
+                            </Stack>
+                          </Box>
+                        )}
+                        {e.snapshot && (
+                          <Group mt={6}>
+                            <Button
+                              size="xs"
+                              variant="default"
+                              leftSection={<IconEye size={12} />}
+                              onClick={() => {
+                                setSnapshotEntry(e);
+                                setSnapshotOpen(true);
+                              }}
+                            >
+                              View snapshot
+                            </Button>
+                          </Group>
+                        )}
+                      </Timeline.Item>
+                    );
+                  })}
+                </Timeline>
+              )}
+            </Stack>
+          </Tabs.Panel>
         </Tabs>
       </Paper>
+
+      {/* ─── Snapshot viewer Modal ─── */}
+      <Modal
+        opened={snapshotOpen}
+        onClose={() => setSnapshotOpen(false)}
+        title={
+          snapshotEntry
+            ? `Snapshot — ${new Date(snapshotEntry.created_at).toLocaleString()}`
+            : "Snapshot"
+        }
+        size="xl"
+        centered
+      >
+        <ScrollArea h={500}>
+          <Code block>
+            {JSON.stringify(snapshotEntry?.snapshot ?? {}, null, 2)}
+          </Code>
+        </ScrollArea>
+      </Modal>
 
       {/* ─── Deliverable Add/Edit modal ─── */}
       <Modal

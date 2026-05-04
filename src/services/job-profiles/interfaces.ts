@@ -103,6 +103,29 @@ export interface JPApprover {
   };
 }
 
+
+/* ── Business Process selections (item 4.2) ── */
+export type BpLevel = 'group' | 'process' | 'sub_process' | 'procedure';
+
+export interface BusinessProcessNode {
+  id: number;
+  parent_id: number | null;
+  level: BpLevel;
+  code: string;
+  name: string;
+  definition?: string | null;
+  sort_order?: number;
+  is_active?: boolean;
+  children?: BusinessProcessNode[];
+}
+
+export interface JPBusinessProcess {
+  job_profile_id: number;
+  business_process_node_id: number;
+  created?: string;
+  node?: BusinessProcessNode;
+}
+
 export interface JobProfile {
   job_profile_id: number;
   job_title: string;
@@ -126,4 +149,8 @@ export interface JobProfile {
   deliverables?: JPDeliverable[];
   requirements?: JPRequirement;
   approvers?: JPApprover[];
+  businessProcesses?: JPBusinessProcess[];
+  business_process_node_ids?: number[];
+  created?: string;
+  updated?: string;
 }

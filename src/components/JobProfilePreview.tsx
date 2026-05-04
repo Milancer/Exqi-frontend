@@ -436,6 +436,25 @@ const JobProfilePDF = ({
           </View>
         )}
 
+        {/* Business Processes (item 4.2) — only rendered when at least one is picked */}
+        {profile.businessProcesses && profile.businessProcesses.length > 0 && (
+          <View style={pdfStyles.section}>
+            <PDFText style={pdfStyles.sectionHeader}>BUSINESS PROCESSES</PDFText>
+            {profile.businessProcesses
+              .filter((j) => j.node)
+              .sort((a, b) =>
+                (a.node?.code ?? "").localeCompare(b.node?.code ?? ""),
+              )
+              .map((j) => (
+                <View key={j.business_process_node_id} style={{ marginBottom: 4 }}>
+                  <PDFText style={pdfStyles.fieldValue}>
+                    {(j.node?.code ?? "")} — {(j.node?.name ?? "")}
+                  </PDFText>
+                </View>
+              ))}
+          </View>
+        )}
+
         {/* Signatures / Approvals Table — always rendered, even when empty */}
         <View style={pdfStyles.section}>
           <PDFText style={pdfStyles.sectionHeader}>APPROVALS</PDFText>
@@ -956,6 +975,30 @@ export default function JobProfilePreview({
                       </Text>
                     </Box>
                   )}
+                </Stack>
+              </Box>
+            </>
+          )}
+
+          {/* Business Processes (item 4.2) — on-screen preview */}
+          {profile.businessProcesses && profile.businessProcesses.length > 0 && (
+            <>
+              <Divider />
+              <Box>
+                <Text fw={700} size="sm" c="dimmed" tt="uppercase" mb={4}>
+                  Business Processes
+                </Text>
+                <Stack gap={2}>
+                  {profile.businessProcesses
+                    .filter((j) => j.node)
+                    .sort((a, b) =>
+                      (a.node?.code ?? "").localeCompare(b.node?.code ?? ""),
+                    )
+                    .map((j) => (
+                      <Text key={j.business_process_node_id} size="sm">
+                        <b>{j.node?.code}</b> — {j.node?.name}
+                      </Text>
+                    ))}
                 </Stack>
               </Box>
             </>
