@@ -403,8 +403,10 @@ export default function JobProfiles() {
       setModalOpened(false);
       descForm.reset();
 
-      // Stay on the list → refresh data
-      fetchProfiles();
+      // "Save and Next" — jump straight to the detail page so the user can
+      // continue filling in Requirements / BP / Deliverables / Competencies /
+      // Skills / Approval. The list refresh happens whenever they come back.
+      navigate(`/job-profiles/${newId}`);
     } catch (e: any) {
       notifications.show({
         title: "Error",
@@ -778,6 +780,8 @@ export default function JobProfiles() {
                   />
                   <Select
                     label="Status"
+                    description="Status changes via the Approval workflow, not manually"
+                    disabled
                     data={[
                       { value: "In Progress", label: "In Progress" },
                       { value: "Awaiting Review", label: "Awaiting Review" },
@@ -825,7 +829,7 @@ export default function JobProfiles() {
                   variant="gradient"
                   gradient={{ from: "grape", to: "violet", deg: 135 }}
                 >
-                  Create Job Profile
+                  Save and Next
                 </Button>
               </Stack>
             </form>

@@ -870,18 +870,12 @@ export default function JobProfileDetail() {
               Requirements
             </Tabs.Tab>
             <Tabs.Tab
-              value="competencies"
-              leftSection={<IconTargetArrow size={14} />}
+              value="business-process"
+              leftSection={<IconSitemap size={14} />}
             >
-              Competencies{" "}
-              <Badge size="xs" variant="light" color="indigo" ml={4}>
-                {profile.competencies?.length || 0}
-              </Badge>
-            </Tabs.Tab>
-            <Tabs.Tab value="skills" leftSection={<IconTool size={14} />}>
-              Skills{" "}
-              <Badge size="xs" variant="light" color="teal" ml={4}>
-                {profile.skills?.length || 0}
+              Business Process{" "}
+              <Badge size="xs" variant="light" color="grape" ml={4}>
+                {(profile.businessProcesses?.length) || 0}
               </Badge>
             </Tabs.Tab>
             <Tabs.Tab
@@ -894,12 +888,18 @@ export default function JobProfileDetail() {
               </Badge>
             </Tabs.Tab>
             <Tabs.Tab
-              value="business-process"
-              leftSection={<IconSitemap size={14} />}
+              value="competencies"
+              leftSection={<IconTargetArrow size={14} />}
             >
-              Business Process{" "}
-              <Badge size="xs" variant="light" color="grape" ml={4}>
-                {(profile.businessProcesses?.length) || 0}
+              Competencies{" "}
+              <Badge size="xs" variant="light" color="indigo" ml={4}>
+                {profile.competencies?.length || 0}
+              </Badge>
+            </Tabs.Tab>
+            <Tabs.Tab value="skills" leftSection={<IconTool size={14} />}>
+              Skills{" "}
+              <Badge size="xs" variant="light" color="teal" ml={4}>
+                {profile.skills?.length || 0}
               </Badge>
             </Tabs.Tab>
             <Tabs.Tab
@@ -985,6 +985,8 @@ export default function JobProfileDetail() {
                 />
                 <Select
                   label="Status"
+                  description="Status changes via the Approval workflow, not manually"
+                  disabled
                   data={[
                     { value: "In Progress", label: "In Progress" },
                     { value: "Awaiting Review", label: "Awaiting Review" },
