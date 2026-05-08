@@ -53,7 +53,10 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Module-based route guard
+// Module-based route guard. Module access is derived from the user's role:
+//   ADMIN, OFFICE_MANAGER → both modules
+//   OFFICE_REVIEWER, JOB_PROFILE_USER → Job Profile
+//   CBI_USER → Competency Based Interview
 export function ModuleRoute({
   children,
   module
@@ -76,22 +79,26 @@ export function ModuleRoute({
     );
   }
 
-  // Admins have access to all modules
-  if (user?.role === "ADMIN") {
+  const role = user?.role;
+  const allowed: Record<string, string[]> = {
+    ADMIN: ["Job Profile", "Competency Based Interview"],
+    OFFICE_MANAGER: ["Job Profile", "Competency Based Interview"],
+    OFFICE_REVIEWER: ["Job Profile"],
+    JOB_PROFILE_USER: ["Job Profile"],
+    CBI_USER: ["Competency Based Interview"],
+  };
+
+  const userAllowed = (role && allowed[role]) || [];
+  if (userAllowed.includes(module)) {
     return <>{children}</>;
   }
 
-  // OFFICE_REVIEWER is locked down to Job Profile module only.
-  if (user?.role === "OFFICE_REVIEWER") {
-    if (module === "Job Profile") return <>{children}</>;
-    return <Navigate to="/job-profiles" replace />;
-  }
-
-  // Check if user's client has the required module
-  const hasModule = user?.modules?.includes(module);
-  if (!hasModule) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
+  // Redirect to the user's primary landing page.
+  const fallback =
+    role === "CBI_USER"
+      ? "/interviews"
+      : role === "OFFICE_REVIEWER" || role === "JOB_PROFILE_USER"
+        ? "/job-profiles"
+        : "/";
+  return <Navigate to={fallback} replace />;
 }

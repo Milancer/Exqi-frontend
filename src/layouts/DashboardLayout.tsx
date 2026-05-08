@@ -67,17 +67,20 @@ export default function DashboardLayout() {
 
   const initials = user?.email ? user.email.charAt(0).toUpperCase() : "?";
   const isAdmin = user?.role === "ADMIN";
-  const isOfficeReviewer = user?.role === "OFFICE_REVIEWER";
-  const userModules = user?.modules || [];
-
-  // OFFICE_REVIEWER is locked down to Job Profiles only — no other modules, dashboard, or admin.
-  const hasJobProfileModule =
-    isAdmin || isOfficeReviewer || userModules.includes("Job Profile");
-  const hasCbiModule =
-    !isOfficeReviewer && (isAdmin || userModules.includes("Competency Based Interview"));
-  const showDashboard = !isOfficeReviewer;
-  // Admin section visible to ADMIN and OFFICE_MANAGER only
   const isOfficeManager = user?.role === "OFFICE_MANAGER";
+  const isOfficeReviewer = user?.role === "OFFICE_REVIEWER";
+  const isJobProfileUser = user?.role === "JOB_PROFILE_USER";
+  const isCbiUser = user?.role === "CBI_USER";
+
+  // Module visibility is now driven purely by role. ADMIN and OFFICE_MANAGER
+  // see both. JP_USER and OFFICE_REVIEWER see Job Profile only. CBI_USER
+  // sees CBI only.
+  const hasJobProfileModule =
+    isAdmin || isOfficeManager || isOfficeReviewer || isJobProfileUser;
+  const hasCbiModule = isAdmin || isOfficeManager || isCbiUser;
+  // Reviewer and CBI-only users get a stripped-down nav with no dashboard.
+  const showDashboard = !isOfficeReviewer && !isCbiUser;
+  // Admin section visible to ADMIN and OFFICE_MANAGER only
   const canSeeAdmin = isAdmin || isOfficeManager;
 
   // CBI sub-nav items (only if has CBI module)
@@ -272,7 +275,7 @@ export default function DashboardLayout() {
             />
           )}
 
-          {/* Admin parent with sub-nav — hidden for OFFICE_USER and OFFICE_REVIEWER */}
+          {/* Admin parent with sub-nav — visible only to ADMIN and OFFICE_MANAGER */}
           {canSeeAdmin && (
             <NavLink
               label="Admin"

@@ -12,7 +12,6 @@ import {
   TextInput,
   PasswordInput,
   Select,
-  MultiSelect,
   Badge,
   ActionIcon,
   Loader,
@@ -37,7 +36,8 @@ const roleOptions = [
   { value: "ADMIN", label: "Admin" },
   { value: "OFFICE_MANAGER", label: "Office Manager" },
   { value: "OFFICE_REVIEWER", label: "Office Reviewer" },
-  { value: "OFFICE_USER", label: "Office User" },
+  { value: "JOB_PROFILE_USER", label: "Job Profile User" },
+  { value: "CBI_USER", label: "CBI User" },
 ];
 
 const statusOptions = [
@@ -49,7 +49,8 @@ const roleColor: Record<string, string> = {
   ADMIN: "red",
   OFFICE_MANAGER: "blue",
   OFFICE_REVIEWER: "cyan",
-  OFFICE_USER: "gray",
+  JOB_PROFILE_USER: "indigo",
+  CBI_USER: "violet",
 };
 
 export default function Users() {
@@ -73,10 +74,9 @@ export default function Users() {
       phoneNumber: "",
       email: "",
       password: "",
-      role: "OFFICE_USER",
+      role: "JOB_PROFILE_USER",
       status: "ACTIVE",
       clientId: "",
-      modules: [] as string[],
     },
     validate: {
       name: (v) => (v.trim() ? null : "Name is required"),
@@ -103,7 +103,6 @@ export default function Users() {
       role: u.role,
       status: u.status,
       clientId: u.clientId.toString(),
-      modules: Array.isArray(u.modules) ? u.modules : [],
     });
     setEditingId(u.id);
     setModalOpened(true);
@@ -317,7 +316,7 @@ export default function Users() {
                       variant="light"
                       color={roleColor[u.role] || "gray"}
                     >
-                      {u.role.replace("_", " ")}
+                      {u.role.replace(/_/g, " ")}
                     </Badge>
                   </Table.Td>
                   <Table.Td>
@@ -435,19 +434,6 @@ export default function Users() {
               required
               searchable
               {...form.getInputProps("clientId")}
-            />
-            <MultiSelect
-              label="Module access"
-              description="Restrict this user to specific modules. Leave empty to inherit the client's module access."
-              placeholder="Pick modules (or leave empty to use client default)"
-              data={[
-                { value: "Job Profile", label: "Job Profile" },
-                {
-                  value: "Competency Based Interview",
-                  label: "Competency Based Interview (CBI)",
-                },
-              ]}
-              {...form.getInputProps("modules")}
             />
             <Button
               type="submit"

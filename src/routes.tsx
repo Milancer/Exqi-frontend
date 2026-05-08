@@ -22,8 +22,11 @@ import BulkImport from "./pages/BulkImport";
 
 function HomeRedirect() {
   const { user } = useAuth();
-  if (user?.role === "OFFICE_REVIEWER") {
+  if (user?.role === "OFFICE_REVIEWER" || user?.role === "JOB_PROFILE_USER") {
     return <Navigate to="/job-profiles" replace />;
+  }
+  if (user?.role === "CBI_USER") {
+    return <Navigate to="/interviews" replace />;
   }
   return <Dashboard />;
 }
