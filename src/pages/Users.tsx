@@ -12,6 +12,7 @@ import {
   TextInput,
   PasswordInput,
   Select,
+  MultiSelect,
   Badge,
   ActionIcon,
   Loader,
@@ -75,6 +76,7 @@ export default function Users() {
       role: "OFFICE_USER",
       status: "ACTIVE",
       clientId: "",
+      modules: [] as string[],
     },
     validate: {
       name: (v) => (v.trim() ? null : "Name is required"),
@@ -101,6 +103,7 @@ export default function Users() {
       role: u.role,
       status: u.status,
       clientId: u.clientId.toString(),
+      modules: Array.isArray(u.modules) ? u.modules : [],
     });
     setEditingId(u.id);
     setModalOpened(true);
@@ -432,6 +435,19 @@ export default function Users() {
               required
               searchable
               {...form.getInputProps("clientId")}
+            />
+            <MultiSelect
+              label="Module access"
+              description="Restrict this user to specific modules. Leave empty to inherit the client's module access."
+              placeholder="Pick modules (or leave empty to use client default)"
+              data={[
+                { value: "Job Profile", label: "Job Profile" },
+                {
+                  value: "Competency Based Interview",
+                  label: "Competency Based Interview (CBI)",
+                },
+              ]}
+              {...form.getInputProps("modules")}
             />
             <Button
               type="submit"

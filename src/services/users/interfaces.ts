@@ -9,5 +9,6 @@ export interface User {
   status: string;
   clientId: number;
   client?: { id: number; name: string };
+  modules?: string[] | null;
   created_at: string;
 }
