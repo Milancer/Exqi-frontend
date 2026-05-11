@@ -19,6 +19,7 @@ import {
   NumberInput,
   Switch,
   Select,
+  MultiSelect,
   Loader,
   Center,
   Pagination,
@@ -38,6 +39,7 @@ import {
   IconFileDescription,
   IconShieldCheck,
   IconEye,
+  IconSitemap,
 } from "@tabler/icons-react";
 import JobProfilePreview from "../components/JobProfilePreview";
 import api from "../services/api";
@@ -48,7 +50,12 @@ import type {
   JobProfile,
   JpCompetency,
   JPReviewer,
+  BusinessProcessNode,
 } from "../services/job-profiles/interfaces";
+import {
+  getBusinessProcessGroups,
+  getBusinessProcessTree,
+} from "../services/business-processes";
 
 const statusColors: Record<string, string> = {
   "In Progress": "blue",
@@ -64,6 +71,9 @@ export default function JobProfiles() {
   const { data: clients = [] } = useClients();
   const clientLogo = clients.find((c) => c.id === user?.clientId)?.logo || null;
   const isAdmin = user?.role === "ADMIN";
+  // Reviewers can read & action existing profiles but cannot author new ones —
+  // separation of duties for the approval workflow.
+  const canCreate = user?.role !== "OFFICE_REVIEWER";
   const [profiles, setProfiles] = useState<JobProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpened, setModalOpened] = useState(false);
@@ -118,6 +128,17 @@ export default function JobProfiles() {
     certifications: "",
     other_requirements: "",
   });
+
+  /* Business Process picker state — mirrors the cascading picker on the
+     detail page so the customer sees the same UX. */
+  const [bpGroups, setBpGroups] = useState<BusinessProcessNode[]>([]);
+  const [bpTreeByGroup, setBpTreeByGroup] = useState<
+    Record<string, BusinessProcessNode[]>
+  >({});
+  const [createBpGroup, setCreateBpGroup] = useState<string | null>(null);
+  const [createBpProcessIds, setCreateBpProcessIds] = useState<number[]>([]);
+  const [createBpSubProcessIds, setCreateBpSubProcessIds] = useState<number[]>([]);
+  const [createBpProcedureIds, setCreateBpProcedureIds] = useState<number[]>([]);
 
   // Reviewer & approver candidates
   const [reviewerCandidates, setReviewerCandidates] = useState<JPReviewer[]>(
@@ -258,6 +279,34 @@ export default function JobProfiles() {
     }
   }, []);
 
+  const fetchBpGroups = useCallback(async () => {
+    try {
+      setBpGroups(await getBusinessProcessGroups());
+    } catch {
+      /* silent */
+    }
+  }, []);
+
+  // Lazy-fetch (and cache) the subtree for the currently-picked Group.
+  useEffect(() => {
+    if (!createBpGroup) return;
+    if (bpTreeByGroup[createBpGroup]) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const trees = await getBusinessProcessTree(createBpGroup);
+        if (!cancelled) {
+          setBpTreeByGroup((prev) => ({ ...prev, [createBpGroup]: trees }));
+        }
+      } catch {
+        /* silent */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [createBpGroup, bpTreeByGroup]);
+
   // Fetch profiles when filters or pagination change
   useEffect(() => {
     fetchProfiles();
@@ -270,7 +319,8 @@ export default function JobProfiles() {
     fetchReferenceData();
     fetchReviewerCandidates();
     fetchProfileOptions();
-  }, [fetchDivisions, fetchCompetencies, fetchReferenceData, fetchReviewerCandidates, fetchProfileOptions]);
+    fetchBpGroups();
+  }, [fetchDivisions, fetchCompetencies, fetchReferenceData, fetchReviewerCandidates, fetchProfileOptions, fetchBpGroups]);
 
   // Reset to page 1 when search or filters change
   const prevSearch = useRef(debouncedSearch);
@@ -361,6 +411,24 @@ export default function JobProfiles() {
         }
       }
 
+      // Save Business Process selections (Process + Sub-Process + Procedure
+      // node IDs). The PATCH endpoint accepts business_process_node_ids and
+      // replaces the selection set on the profile.
+      const bpIds = [
+        ...createBpProcessIds,
+        ...createBpSubProcessIds,
+        ...createBpProcedureIds,
+      ];
+      if (bpIds.length > 0) {
+        try {
+          await api.patch(`/job-profiles/${newId}`, {
+            business_process_node_ids: bpIds,
+          });
+        } catch {
+          /* skip if fails */
+        }
+      }
+
       // Submit for review if both reviewer and approver are picked (id OR email)
       const reviewerProvided = createReviewerId || createReviewerEmail.trim();
       const approverProvided = createApproverId || createApproverEmail.trim();
@@ -381,7 +449,8 @@ export default function JobProfiles() {
         compEntries.length +
         createSkills.length +
         createDeliverables.length +
-        (hasReqs ? 1 : 0);
+        (hasReqs ? 1 : 0) +
+        (bpIds.length > 0 ? 1 : 0);
       notifications.show({
         title: "Created",
         message: `Job profile created${addedCount > 0 ? ` with ${addedCount} linked item(s)` : ""}`,
@@ -400,6 +469,10 @@ export default function JobProfiles() {
       });
       setCreateReviewerId(null);
       setCreateApproverId(null);
+      setCreateBpGroup(null);
+      setCreateBpProcessIds([]);
+      setCreateBpSubProcessIds([]);
+      setCreateBpProcedureIds([]);
       setModalOpened(false);
       descForm.reset();
 
@@ -465,14 +538,16 @@ export default function JobProfiles() {
           </Text>
         </Box>
         <Group gap="sm">
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={openCreate}
-            variant="gradient"
-            gradient={{ from: "grape", to: "violet", deg: 135 }}
-          >
-            Create Job Profile
-          </Button>
+          {canCreate && (
+            <Button
+              leftSection={<IconPlus size={16} />}
+              onClick={openCreate}
+              variant="gradient"
+              gradient={{ from: "grape", to: "violet", deg: 135 }}
+            >
+              Create Job Profile
+            </Button>
+          )}
         </Group>
       </Group>
 
@@ -540,14 +615,16 @@ export default function JobProfiles() {
               <Text size="sm" c="dimmed">
                 No job profiles found
               </Text>
-              <Button
-                size="xs"
-                variant="light"
-                onClick={openCreate}
-                leftSection={<IconPlus size={14} />}
-              >
-                Create one
-              </Button>
+              {canCreate && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  onClick={openCreate}
+                  leftSection={<IconPlus size={14} />}
+                >
+                  Create one
+                </Button>
+              )}
             </Stack>
           </Box>
         ) : (
@@ -662,6 +739,10 @@ export default function JobProfiles() {
           });
           setCreateReviewerId(null);
           setCreateApproverId(null);
+          setCreateBpGroup(null);
+          setCreateBpProcessIds([]);
+          setCreateBpSubProcessIds([]);
+          setCreateBpProcedureIds([]);
         }}
         title="Create Job Profile"
         size="xl"
@@ -698,6 +779,22 @@ export default function JobProfiles() {
               {createSkills.length > 0 && (
                 <Badge size="xs" variant="light" color="teal" ml={4}>
                   {createSkills.length}
+                </Badge>
+              )}
+            </Tabs.Tab>
+            <Tabs.Tab
+              value="business-process"
+              leftSection={<IconSitemap size={14} />}
+            >
+              Business Process
+              {createBpProcessIds.length +
+                createBpSubProcessIds.length +
+                createBpProcedureIds.length >
+                0 && (
+                <Badge size="xs" variant="light" color="grape" ml={4}>
+                  {createBpProcessIds.length +
+                    createBpSubProcessIds.length +
+                    createBpProcedureIds.length}
                 </Badge>
               )}
             </Tabs.Tab>
@@ -1183,6 +1280,147 @@ export default function JobProfiles() {
                   </Table.Tbody>
                 </Table>
               )}
+            </Stack>
+          </Tabs.Panel>
+
+          {/* Business Process Tab */}
+          <Tabs.Panel value="business-process">
+            <Stack>
+              <Text size="sm" c="dimmed">
+                Map this Job Profile to one or more SITA Business Processes.
+                Pick the Group first, then any combination of Process,
+                Sub-Process and Procedure that applies.
+              </Text>
+
+              <Select
+                label="Group"
+                placeholder="Pick a Group"
+                data={bpGroups.map((g) => ({ value: g.code, label: g.name }))}
+                value={createBpGroup}
+                onChange={(v) => {
+                  setCreateBpGroup(v);
+                  setCreateBpProcessIds([]);
+                  setCreateBpSubProcessIds([]);
+                  setCreateBpProcedureIds([]);
+                }}
+                clearable
+                searchable
+              />
+
+              {(() => {
+                const groupTree = createBpGroup
+                  ? bpTreeByGroup[createBpGroup]?.[0]?.children ?? []
+                  : [];
+                const processOptions = groupTree.map((p) => ({
+                  value: String(p.id),
+                  label: `${p.code} — ${p.name}`,
+                }));
+                const allowedSubProcessNodes = groupTree
+                  .filter((p) => createBpProcessIds.includes(p.id))
+                  .flatMap((p) => p.children ?? []);
+                const subProcessOptions = allowedSubProcessNodes.map((sp) => ({
+                  value: String(sp.id),
+                  label: `${sp.code} — ${sp.name}`,
+                }));
+                const allowedProcedureNodes = allowedSubProcessNodes
+                  .filter((sp) => createBpSubProcessIds.includes(sp.id))
+                  .flatMap((sp) => sp.children ?? []);
+                const procedureOptions = allowedProcedureNodes.map((pr) => ({
+                  value: String(pr.id),
+                  label: `${pr.code} — ${pr.name}`,
+                }));
+
+                return (
+                  <Stack>
+                    <MultiSelect
+                      label="Process"
+                      placeholder={
+                        createBpGroup
+                          ? "Pick one or more Processes"
+                          : "Pick a Group first"
+                      }
+                      data={processOptions}
+                      value={createBpProcessIds.map(String)}
+                      onChange={(vals) => {
+                        const ids = vals.map(Number);
+                        setCreateBpProcessIds(ids);
+                        // Prune sub/procedure picks whose ancestor was unpicked
+                        setCreateBpSubProcessIds((prev) =>
+                          prev.filter((spId) =>
+                            groupTree.some(
+                              (p) =>
+                                ids.includes(p.id) &&
+                                (p.children ?? []).some((sp) => sp.id === spId),
+                            ),
+                          ),
+                        );
+                        setCreateBpProcedureIds((prev) =>
+                          prev.filter((prId) =>
+                            groupTree.some(
+                              (p) =>
+                                ids.includes(p.id) &&
+                                (p.children ?? []).some((sp) =>
+                                  (sp.children ?? []).some(
+                                    (pr) => pr.id === prId,
+                                  ),
+                                ),
+                            ),
+                          ),
+                        );
+                      }}
+                      searchable
+                      clearable
+                      disabled={!createBpGroup}
+                    />
+
+                    <MultiSelect
+                      label="Sub-Process"
+                      placeholder={
+                        createBpProcessIds.length === 0
+                          ? "Pick a Process first"
+                          : "Pick one or more Sub-Processes"
+                      }
+                      data={subProcessOptions}
+                      value={createBpSubProcessIds.map(String)}
+                      onChange={(vals) => {
+                        const ids = vals.map(Number);
+                        setCreateBpSubProcessIds(ids);
+                        setCreateBpProcedureIds((prev) =>
+                          prev.filter((prId) =>
+                            allowedSubProcessNodes.some(
+                              (sp) =>
+                                ids.includes(sp.id) &&
+                                (sp.children ?? []).some(
+                                  (pr) => pr.id === prId,
+                                ),
+                            ),
+                          ),
+                        );
+                      }}
+                      searchable
+                      clearable
+                      disabled={createBpProcessIds.length === 0}
+                    />
+
+                    <MultiSelect
+                      label="Procedure"
+                      placeholder={
+                        createBpSubProcessIds.length === 0
+                          ? "Pick a Sub-Process first"
+                          : "Pick one or more Procedures"
+                      }
+                      data={procedureOptions}
+                      value={createBpProcedureIds.map(String)}
+                      onChange={(vals) =>
+                        setCreateBpProcedureIds(vals.map(Number))
+                      }
+                      searchable
+                      clearable
+                      disabled={createBpSubProcessIds.length === 0}
+                    />
+                  </Stack>
+                );
+              })()}
             </Stack>
           </Tabs.Panel>
 
