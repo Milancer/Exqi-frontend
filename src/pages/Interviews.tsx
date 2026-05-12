@@ -242,20 +242,25 @@ export default function Interviews() {
     }
 
     try {
+      // interviewer is optional; only include it when a value was picked.
+      const interviewerId = values.interviewer_id
+        ? +values.interviewer_id
+        : null;
       if (editingSessionId) {
         // Edit existing session — template is fixed, only candidate/interviewer/selection can change
         await api.patch(`/interviews/${editingSessionId}`, {
           candidate_id: +values.candidate_id,
-          interviewer_id: +values.interviewer_id,
+          interviewer_id: interviewerId,
           selected_question_ids: Array.from(selectedQuestionIds),
         });
       } else {
-        await api.post("/interviews", {
+        const payload: Record<string, unknown> = {
           candidate_id: +values.candidate_id,
           cbi_template_id: +values.cbi_template_id,
-          interviewer_id: +values.interviewer_id,
           selected_question_ids: Array.from(selectedQuestionIds),
-        });
+        };
+        if (interviewerId) payload.interviewer_id = interviewerId;
+        await api.post("/interviews", payload);
       }
       setModalOpened(false);
       setEditingSessionId(null);
@@ -410,8 +415,10 @@ export default function Interviews() {
               {s.candidate?.name} {s.candidate?.surname}
             </Title>
             <Text c="dimmed">
-              {s.template?.template_name} • Interviewer: {s.interviewer?.name}{" "}
-              {s.interviewer?.surname}
+              {s.template?.template_name} • Interviewer:{" "}
+              {s.interviewer
+                ? `${s.interviewer.name} ${s.interviewer.surname}`
+                : "—"}
             </Text>
           </Box>
           <Badge size="lg" color={getStatusColor(s.status)}>
@@ -709,7 +716,9 @@ export default function Interviews() {
                   </Table.Td>
                   <Table.Td>{s.template?.template_name || "—"}</Table.Td>
                   <Table.Td>
-                    {s.interviewer?.name} {s.interviewer?.surname}
+                    {s.interviewer
+                      ? `${s.interviewer.name} ${s.interviewer.surname}`
+                      : "—"}
                   </Table.Td>
                   <Table.Td>
                     <Badge color={getStatusColor(s.status)} variant="light">
@@ -846,14 +855,15 @@ export default function Interviews() {
               {...form.getInputProps("cbi_template_id")}
             />
             <Select
-              label="Interviewer (Office Manager)"
-              placeholder="Select interviewer"
+              label="Interviewer"
+              placeholder="Select interviewer (optional)"
+              description="Optional. Many interviewers are external panellists who aren't users on the system — leave blank and capture them on the printed PDF."
               data={users.map((u: any) => ({
                 value: String(u.id),
                 label: `${u.name} ${u.surname} (${u.role})`,
               }))}
-              required
               searchable
+              clearable
               {...form.getInputProps("interviewer_id")}
             />
 
