@@ -35,6 +35,7 @@ import {
   IconSitemap,
   IconTable,
   IconUpload,
+  IconListCheck,
 } from "@tabler/icons-react";
 import api from "../lib/api";
 
@@ -86,6 +87,11 @@ export default function DashboardLayout() {
   // CBI sub-nav items (only if has CBI module)
   const cbiChildren = [
     { label: "Competencies", path: "/competencies", icon: IconTable },
+    {
+      label: "Behavioural Indicators",
+      path: "/behavioural-indicators",
+      icon: IconListCheck,
+    },
     { label: "CBI Templates", path: "/cbi-templates", icon: IconClipboardList },
     { label: "Candidates", path: "/candidates", icon: IconUserSearch },
     { label: "Interviews", path: "/interviews", icon: IconMessageQuestion },

@@ -8,6 +8,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Competencies from "./pages/Competencies";
 import CbiTemplates from "./pages/CbiTemplates";
+import BehaviouralIndicators from "./pages/BehaviouralIndicators";
 import JobProfiles from "./pages/JobProfiles";
 import JobProfileDetail from "./pages/JobProfileDetail";
 import JpCompetencies from "./pages/JpCompetencies";
@@ -51,6 +52,7 @@ export default function AppRoutes() {
 
         {/* CBI Module routes */}
         <Route path="competencies" element={<ModuleRoute module="Competency Based Interview"><Competencies /></ModuleRoute>} />
+        <Route path="behavioural-indicators" element={<ModuleRoute module="Competency Based Interview"><BehaviouralIndicators /></ModuleRoute>} />
         <Route path="cbi-templates" element={<ModuleRoute module="Competency Based Interview"><CbiTemplates /></ModuleRoute>} />
 
         {/* Job Profile Module routes */}
