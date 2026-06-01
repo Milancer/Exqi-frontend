@@ -136,6 +136,9 @@ export interface JobProfile {
   level_of_work: number | null;
   department_id: number | null;
   job_grade_id: number | null;
+  jobGrade?: { job_grade_id: number; job_grade: string } | null;
+  department?: { department_id: number; department: string } | null;
+  workLevel?: { work_level_id: number; level_of_work: string } | null;
   reports_to: number | null;
   status: string;
   client_id?: number;

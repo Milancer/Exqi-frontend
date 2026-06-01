@@ -222,6 +222,12 @@ const JobProfilePDF = ({
               {profile.level_of_work || "N/A"}
             </PDFText>
           </View>
+          <View style={pdfStyles.fieldRow}>
+            <PDFText style={pdfStyles.fieldLabel}>Job Grade:</PDFText>
+            <PDFText style={pdfStyles.fieldValue}>
+              {profile.jobGrade?.job_grade || "N/A"}
+            </PDFText>
+          </View>
         </View>
 
         {/* Competencies */}
@@ -705,6 +711,14 @@ export default function JobProfilePreview({
                 </Text>
                 <Text size="sm" fw={500}>
                   {profile.level_of_work || "N/A"}
+                </Text>
+              </Box>
+              <Box>
+                <Text size="xs" c="dimmed">
+                  Job Grade
+                </Text>
+                <Text size="sm" fw={500}>
+                  {profile.jobGrade?.job_grade || "N/A"}
                 </Text>
               </Box>
             </Group>
