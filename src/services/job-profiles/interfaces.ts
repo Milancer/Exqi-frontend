@@ -122,8 +122,22 @@ export interface BusinessProcessNode {
 export interface JPBusinessProcess {
   job_profile_id: number;
   business_process_node_id: number;
+  is_responsible?: boolean;
+  is_accountable?: boolean;
+  is_consulted?: boolean;
+  is_informed?: boolean;
   created?: string;
   node?: BusinessProcessNode;
+}
+
+export type RaciKey = 'R' | 'A' | 'C' | 'I';
+
+export interface BusinessProcessSelection {
+  node_id: number;
+  is_responsible?: boolean;
+  is_accountable?: boolean;
+  is_consulted?: boolean;
+  is_informed?: boolean;
 }
 
 export interface JobProfile {

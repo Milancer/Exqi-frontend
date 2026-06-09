@@ -166,6 +166,14 @@ export default function JobProfileDetail() {
   const [bpSelectedSubProcessIds, setBpSelectedSubProcessIds] = useState<number[]>([]);
   const [bpSelectedProcedureIds, setBpSelectedProcedureIds] = useState<number[]>([]);
   const [bpSaving, setBpSaving] = useState(false);
+  /** RACI flags per node id. Keyed by business_process_node_id. */
+  type RaciFlags = {
+    R: boolean;
+    A: boolean;
+    C: boolean;
+    I: boolean;
+  };
+  const [bpRaci, setBpRaci] = useState<Record<number, RaciFlags>>({});
 
   /* ─── Audit log / history (item 1.5) ─── */
   type JobProfileAuditEntry = {
@@ -189,11 +197,13 @@ export default function JobProfileDetail() {
       setBpSelectedProcessIds([]);
       setBpSelectedSubProcessIds([]);
       setBpSelectedProcedureIds([]);
+      setBpRaci({});
       return;
     }
     const procIds: number[] = [];
     const subProcIds: number[] = [];
     const procedureIds: number[] = [];
+    const raci: Record<number, RaciFlags> = {};
     let firstGroup: string | null = null;
     for (const j of profile.businessProcesses) {
       const node = j.node;
@@ -201,6 +211,12 @@ export default function JobProfileDetail() {
       if (node.level === 'process') procIds.push(node.id);
       else if (node.level === 'sub_process') subProcIds.push(node.id);
       else if (node.level === 'procedure') procedureIds.push(node.id);
+      raci[node.id] = {
+        R: !!j.is_responsible,
+        A: !!j.is_accountable,
+        C: !!j.is_consulted,
+        I: !!j.is_informed,
+      };
       // Derive Group from the code prefix on first hit
       if (!firstGroup) {
         const c = (node.code || '').charAt(0);
@@ -210,6 +226,7 @@ export default function JobProfileDetail() {
     setBpSelectedProcessIds(procIds);
     setBpSelectedSubProcessIds(subProcIds);
     setBpSelectedProcedureIds(procedureIds);
+    setBpRaci(raci);
     if (firstGroup) setBpSelectedGroup(firstGroup);
   }, [profile?.job_profile_id, profile?.businessProcesses]);
 
@@ -1784,6 +1801,174 @@ export default function JobProfileDetail() {
                 );
               })()}
 
+              {/* ─── RACI matrix for selected nodes ─── */}
+              {(() => {
+                const groupTree = bpSelectedGroup
+                  ? bpTreeByGroup[bpSelectedGroup]?.[0]?.children ?? []
+                  : [];
+                const allSubProcessNodes = groupTree.flatMap(
+                  (p) => p.children ?? [],
+                );
+                const allProcedureNodes = allSubProcessNodes.flatMap(
+                  (sp) => sp.children ?? [],
+                );
+                type Row = {
+                  id: number;
+                  level: "Process" | "Sub-Process" | "Procedure";
+                  code: string;
+                  name: string;
+                };
+                const rows: Row[] = [
+                  ...groupTree
+                    .filter((p) => bpSelectedProcessIds.includes(p.id))
+                    .map((p) => ({
+                      id: p.id,
+                      level: "Process" as const,
+                      code: p.code,
+                      name: p.name,
+                    })),
+                  ...allSubProcessNodes
+                    .filter((sp) => bpSelectedSubProcessIds.includes(sp.id))
+                    .map((sp) => ({
+                      id: sp.id,
+                      level: "Sub-Process" as const,
+                      code: sp.code,
+                      name: sp.name,
+                    })),
+                  ...allProcedureNodes
+                    .filter((pr) => bpSelectedProcedureIds.includes(pr.id))
+                    .map((pr) => ({
+                      id: pr.id,
+                      level: "Procedure" as const,
+                      code: pr.code,
+                      name: pr.name,
+                    })),
+                ];
+
+                if (rows.length === 0) return null;
+
+                const RACI_META: Array<{
+                  key: keyof RaciFlags;
+                  label: string;
+                  color: string;
+                }> = [
+                  { key: "R", label: "R", color: "blue" },
+                  { key: "A", label: "A", color: "red" },
+                  { key: "C", label: "C", color: "yellow" },
+                  { key: "I", label: "I", color: "gray" },
+                ];
+
+                const toggle = (id: number, key: keyof RaciFlags) =>
+                  setBpRaci((prev) => {
+                    const current = prev[id] ?? {
+                      R: false,
+                      A: false,
+                      C: false,
+                      I: false,
+                    };
+                    return {
+                      ...prev,
+                      [id]: { ...current, [key]: !current[key] },
+                    };
+                  });
+
+                return (
+                  <Stack gap="xs">
+                    <Group gap="xs" align="baseline">
+                      <Text fw={700} size="sm">
+                        RACI
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        Tag this Job Profile's role on each selected process.
+                        Click a letter to toggle it on/off.
+                      </Text>
+                    </Group>
+                    <Paper withBorder p={0} style={{ overflow: "hidden" }}>
+                      <Table verticalSpacing="xs" striped>
+                        <Table.Thead>
+                          <Table.Tr>
+                            <Table.Th style={{ width: 110 }}>Level</Table.Th>
+                            <Table.Th style={{ width: 110 }}>Code</Table.Th>
+                            <Table.Th>Name</Table.Th>
+                            {RACI_META.map((m) => (
+                              <Table.Th
+                                key={m.key}
+                                style={{
+                                  width: 48,
+                                  textAlign: "center",
+                                }}
+                              >
+                                {m.label}
+                              </Table.Th>
+                            ))}
+                          </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                          {rows.map((row) => {
+                            const flags = bpRaci[row.id] ?? {
+                              R: false,
+                              A: false,
+                              C: false,
+                              I: false,
+                            };
+                            return (
+                              <Table.Tr key={row.id}>
+                                <Table.Td>
+                                  <Badge
+                                    size="sm"
+                                    variant="light"
+                                    color={
+                                      row.level === "Process"
+                                        ? "indigo"
+                                        : row.level === "Sub-Process"
+                                          ? "teal"
+                                          : "grape"
+                                    }
+                                  >
+                                    {row.level}
+                                  </Badge>
+                                </Table.Td>
+                                <Table.Td>
+                                  <Text size="sm" ff="monospace">
+                                    {row.code}
+                                  </Text>
+                                </Table.Td>
+                                <Table.Td>
+                                  <Text size="sm">{row.name}</Text>
+                                </Table.Td>
+                                {RACI_META.map((m) => {
+                                  const on = flags[m.key];
+                                  return (
+                                    <Table.Td
+                                      key={m.key}
+                                      style={{ textAlign: "center" }}
+                                    >
+                                      <Button
+                                        variant={on ? "filled" : "outline"}
+                                        color={m.color}
+                                        size="compact-xs"
+                                        radius="xl"
+                                        onClick={() => toggle(row.id, m.key)}
+                                        style={{
+                                          minWidth: 32,
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {m.label}
+                                      </Button>
+                                    </Table.Td>
+                                  );
+                                })}
+                              </Table.Tr>
+                            );
+                          })}
+                        </Table.Tbody>
+                      </Table>
+                    </Paper>
+                  </Stack>
+                );
+              })()}
+
               <Group justify="flex-end">
                 <Button
                   loading={bpSaving}
@@ -1797,8 +1982,18 @@ export default function JobProfileDetail() {
                         ...bpSelectedSubProcessIds,
                         ...bpSelectedProcedureIds,
                       ];
+                      const business_processes = ids.map((node_id) => {
+                        const flags = bpRaci[node_id];
+                        return {
+                          node_id,
+                          is_responsible: !!flags?.R,
+                          is_accountable: !!flags?.A,
+                          is_consulted: !!flags?.C,
+                          is_informed: !!flags?.I,
+                        };
+                      });
                       await api.patch(`/job-profiles/${profileId}`, {
-                        business_process_node_ids: ids,
+                        business_processes,
                       });
                       notifications.show({
                         title: "Saved",
