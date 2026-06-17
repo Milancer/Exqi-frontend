@@ -39,6 +39,20 @@ import type {
   JpCompetency,
 } from "../services/jp-competencies/interfaces";
 
+/* Roles allowed to create/edit the Job Profile competency taxonomy.
+   Mirrors TAXONOMY_WRITE_ROLES on the backend job-profiles controller so the
+   UI shows the "Add" affordances to exactly the roles the API permits.
+   NB: roles are UPPERCASE (e.g. "ADMIN", "OFFICE_MANAGER") — a previous
+   `role === "admin"` check never matched and hid these buttons from everyone. */
+const TAXONOMY_WRITE_ROLES = [
+  "ADMIN",
+  "OFFICE_MANAGER",
+  "CBI_USER",
+  "JOB_PROFILE_USER",
+];
+const canManageTaxonomy = (role?: string) =>
+  !!role && TAXONOMY_WRITE_ROLES.includes(role);
+
 /* ──────────────────────── Empty state helper ─────────────────────── */
 
 function EmptyState({
@@ -162,7 +176,7 @@ function TypesTab({
         <Text size="sm" c="dimmed">
           Step 1 — Define the high-level competency categories for job profiles
         </Text>
-        {user?.role === "admin" && (
+        {canManageTaxonomy(user?.role) && (
           <Button
             leftSection={<IconPlus size={16} />}
             onClick={openCreate}
@@ -405,7 +419,7 @@ function ClustersTab({
             {filtered.length} / {clusters.length}
           </Badge>
         </Group>
-        {user?.role === "admin" && (
+        {canManageTaxonomy(user?.role) && (
           <Button
             leftSection={<IconPlus size={16} />}
             onClick={openCreate}
@@ -742,7 +756,7 @@ function CompetenciesTab({
         <Text size="sm" c="dimmed">
           Step 3 — Define specific competencies within clusters
         </Text>
-        {user?.role === "admin" && (
+        {canManageTaxonomy(user?.role) && (
           <Button
             leftSection={<IconPlus size={16} />}
             onClick={openCreate}

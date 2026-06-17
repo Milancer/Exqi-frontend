@@ -1883,6 +1883,32 @@ export default function JobProfileDetail() {
                         Click a letter to toggle it on/off.
                       </Text>
                     </Group>
+                    <Group gap="lg">
+                      <Text size="xs" c="dimmed">
+                        <Text span fw={700} c="blue">
+                          R
+                        </Text>{" "}
+                        Responsible
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        <Text span fw={700} c="red">
+                          A
+                        </Text>{" "}
+                        Accountable
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        <Text span fw={700} c="yellow.8">
+                          C
+                        </Text>{" "}
+                        Consulted
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        <Text span fw={700} c="gray">
+                          I
+                        </Text>{" "}
+                        Informed
+                      </Text>
+                    </Group>
                     <Paper withBorder p={0} style={{ overflow: "hidden" }}>
                       <Table verticalSpacing="xs" striped>
                         <Table.Thead>
