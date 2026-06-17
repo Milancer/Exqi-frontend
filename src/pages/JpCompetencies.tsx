@@ -32,6 +32,7 @@ import {
 } from "@tabler/icons-react";
 import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { compareCompetencyTypeName } from "../lib/competencyTypeOrder";
 
 import type {
   JpCompetencyType,
@@ -1014,7 +1015,13 @@ export default function JpCompetencies() {
   const fetchTypes = useCallback(async () => {
     try {
       const res = await api.get("/job-profiles/competency-types");
-      setTypes(res.data);
+      // Canonical order (Leadership → Behavioural → Technical, then A–Z) so the
+      // Types list and every type dropdown on this page stay consistent.
+      setTypes(
+        [...res.data].sort((a, b) =>
+          compareCompetencyTypeName(a.competency_type, b.competency_type),
+        ),
+      );
     } catch {
       notifications.show({
         title: "Error",

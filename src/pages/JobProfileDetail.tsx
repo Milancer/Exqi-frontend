@@ -64,6 +64,7 @@ import {
   getBusinessProcessGroups,
   getBusinessProcessTree,
 } from "../services/business-processes";
+import { compareCompetencyTypeName } from "../lib/competencyTypeOrder";
 
 const statusColors: Record<string, string> = {
   "In Progress": "blue",
@@ -1093,8 +1094,13 @@ export default function JobProfileDetail() {
                   );
                 }
 
-                return Array.from(types.entries()).map(
-                  ([typeId, { name: typeName, comps }]) => {
+                // Display competency-type groups in the canonical business
+                // order: Leadership → Behavioural → Technical, then others A–Z.
+                return Array.from(types.entries())
+                  .sort((a, b) =>
+                    compareCompetencyTypeName(a[1].name, b[1].name),
+                  )
+                  .map(([typeId, { name: typeName, comps }]) => {
                     // Group by cluster within this type
                     const clusters = new Map<string, JpCompetency[]>();
                     comps.forEach((c) => {
