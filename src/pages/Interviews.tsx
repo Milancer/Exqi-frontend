@@ -41,7 +41,6 @@ import {
   type InterviewQuestion,
 } from "../components/InterviewPdf";
 import { useClients } from "../services/clients/hooks";
-import { useAuth } from "../contexts/AuthContext";
 import { useForm } from "@mantine/form";
 import api from "../services/api";
 import { useUrlFilters } from "../hooks/useUrlFilters";
@@ -75,12 +74,9 @@ export default function Interviews() {
   // If set, the modal is editing this existing session (otherwise creating a new one)
   const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
 
-  const { user } = useAuth();
   const { data: clients = [] } = useClients();
-  const clientLogo =
-    (user?.role === "ADMIN"
-      ? null
-      : clients.find((c) => c.id === user?.clientId)?.logo) || null;
+  const getClientLogo = (s: InterviewSession) =>
+    clients.find((c) => c.id === s.client_id)?.logo || null;
 
   const f = useUrlFilters(["search", "ivStatus"] as const);
 
@@ -309,6 +305,7 @@ export default function Interviews() {
     downloadInterviewPdf(
       {
         candidateName: `${s.candidate?.name || ""} ${s.candidate?.surname || ""}`.trim(),
+        jobTitle: s.candidate?.position || undefined,
         templateName: s.template?.template_name || "Interview",
         templateDescription: (s.template as any)?.description || undefined,
         interviewer: s.interviewer
@@ -316,7 +313,7 @@ export default function Interviews() {
           : undefined,
         questions: (s as any).questions || [],
       },
-      clientLogo,
+      getClientLogo(s),
     );
   };
 
