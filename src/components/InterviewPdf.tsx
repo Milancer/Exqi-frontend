@@ -1001,10 +1001,11 @@ export async function downloadInterviewPdf(
   data: InterviewPdfData,
   clientLogo?: string | null,
 ) {
-  // `BRAND_ACCENT` is part of the palette but not directly referenced inside
-  // rendered styles — reference it here so the palette constant isn't
-  // flagged as unused by eslint.
+  // `BRAND_ACCENT`/`TEXT_DIM` are part of the palette but not directly
+  // referenced inside rendered styles — reference them here so the palette
+  // constants aren't flagged as unused by eslint/tsc.
   void BRAND_ACCENT;
+  void TEXT_DIM;
 
   if (!data.questions.length) {
     notifications.show({
