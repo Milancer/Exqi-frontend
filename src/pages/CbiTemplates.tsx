@@ -29,7 +29,6 @@ import {
   IconTrash,
   IconX,
   IconEye,
-  IconDownload,
 } from "@tabler/icons-react";
 import { useUrlFilters } from "../hooks/useUrlFilters";
 import type {
@@ -46,9 +45,6 @@ import {
   useCompetencies,
   useAllCompetencyQuestions,
 } from "../services/competencies/hooks";
-import { useClients } from "../services/clients/hooks";
-import { useAuth } from "../contexts/AuthContext";
-import { downloadCbiTemplatePdf } from "../components/CbiTemplatePdf";
 
 const levelColors: Record<number, string> = {
   1: "green",
@@ -60,9 +56,6 @@ const levelColors: Record<number, string> = {
 
 /* ─── Main Page ─── */
 export default function CbiTemplates() {
-  const { user } = useAuth();
-  const { data: clients = [] } = useClients();
-  const clientLogo = clients.find((c) => c.id === user?.clientId)?.logo || null;
   const { data: templates = [], isLoading: loading } = useCbiTemplates();
   const { data: competencies = [] } = useCompetencies();
   const { data: allQuestions = [] } = useAllCompetencyQuestions();
@@ -368,7 +361,7 @@ export default function CbiTemplates() {
                   </Table.Td>
                   <Table.Td ta="center">
                     <Group gap={4} wrap="nowrap" justify="center">
-                      <Tooltip label="Preview & Download">
+                      <Tooltip label="Preview">
                         <ActionIcon
                           variant="subtle"
                           color="teal"
@@ -529,23 +522,6 @@ export default function CbiTemplates() {
       >
         {previewTemplate && (
           <>
-            <Group justify="flex-end" mb="md">
-              <Button
-                leftSection={<IconDownload size={16} />}
-                variant="gradient"
-                gradient={{ from: "blue", to: "cyan", deg: 135 }}
-                onClick={() =>
-                  downloadCbiTemplatePdf(
-                    previewTemplate,
-                    competencies,
-                    allQuestions,
-                    clientLogo,
-                  )
-                }
-              >
-                Download PDF
-              </Button>
-            </Group>
             {(!previewTemplate.competencies ||
               previewTemplate.competencies.length === 0) && (
               <Text c="dimmed" ta="center" py="lg">

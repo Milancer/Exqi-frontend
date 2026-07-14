@@ -309,7 +309,9 @@ const s = StyleSheet.create({
   },
   starBodyRow: {
     flexDirection: "row",
-    minHeight: 70,
+    // One question per page: the notes area fills the remaining page height
+    // so panel members have maximum writing space.
+    minHeight: 420,
   },
   starBodyCell: {
     flex: 1,
@@ -825,7 +827,7 @@ function InterviewPdfDoc({
         <PageFooter />
       </Page>
 
-      {/* ── Competency pages: each competency starts on a new page ── */}
+      {/* ── Question pages: one question per page for handwritten notes ── */}
       <Page size="A4" style={s.page}>
         <PageHeader
           candidateName={data.candidateName}
@@ -833,47 +835,47 @@ function InterviewPdfDoc({
           clientLogo={clientLogo}
         />
 
-        {groups.map((group, gi) => (
-          <View key={group.competency_name} break={gi > 0}>
-            <PDFText style={s.competencyBar}>
-              Competency {gi + 1}: {group.competency_name}
-            </PDFText>
-            <View style={s.competencyInfo}>
-              <PDFText style={s.competencyInfoLine}>Definition</PDFText>
-              <PDFText style={s.competencyInfoLine}>Behavioral Descriptors</PDFText>
-            </View>
-
-            {group.questions.map((q) => {
-              globalIdx += 1;
-              return (
-                <View key={q.question_id} wrap={false}>
-                  <PDFText style={s.questionText}>
-                    {globalIdx}. {q.question_text}
+        {groups.map((group, gi) =>
+          group.questions.map((q, qi) => {
+            globalIdx += 1;
+            return (
+              <View key={q.question_id} break={gi > 0 || qi > 0}>
+                <PDFText style={s.competencyBar}>
+                  Competency {gi + 1}: {group.competency_name}
+                </PDFText>
+                <View style={s.competencyInfo}>
+                  <PDFText style={s.competencyInfoLine}>Definition</PDFText>
+                  <PDFText style={s.competencyInfoLine}>
+                    Behavioral Descriptors
                   </PDFText>
-                  <View style={s.notesBox}>
-                    <PDFText style={s.notesTitle}>
-                      Notes on Candidate response:
-                    </PDFText>
-                    <View style={s.starHeaderRow}>
-                      <PDFText style={s.starHeaderCell}>Situation/Task</PDFText>
-                      <PDFText style={s.starHeaderCell}>Action</PDFText>
-                      <PDFText style={s.starHeaderCellLast}>Results</PDFText>
-                    </View>
-                    <View style={s.starBodyRow}>
-                      <View style={s.starBodyCell} />
-                      <View style={s.starBodyCell} />
-                      <View style={s.starBodyCellLast} />
-                    </View>
-                    <View style={s.ratingRow}>
-                      <PDFText style={s.ratingLabel}>Rating</PDFText>
-                      <View style={s.ratingSlot} />
-                    </View>
+                </View>
+
+                <PDFText style={s.questionText}>
+                  {globalIdx}. {q.question_text}
+                </PDFText>
+                <View style={s.notesBox}>
+                  <PDFText style={s.notesTitle}>
+                    Notes on Candidate response:
+                  </PDFText>
+                  <View style={s.starHeaderRow}>
+                    <PDFText style={s.starHeaderCell}>Situation/Task</PDFText>
+                    <PDFText style={s.starHeaderCell}>Action</PDFText>
+                    <PDFText style={s.starHeaderCellLast}>Results</PDFText>
+                  </View>
+                  <View style={s.starBodyRow}>
+                    <View style={s.starBodyCell} />
+                    <View style={s.starBodyCell} />
+                    <View style={s.starBodyCellLast} />
+                  </View>
+                  <View style={s.ratingRow}>
+                    <PDFText style={s.ratingLabel}>Rating</PDFText>
+                    <View style={s.ratingSlot} />
                   </View>
                 </View>
-              );
-            })}
-          </View>
-        ))}
+              </View>
+            );
+          }),
+        )}
 
         <PageFooter />
       </Page>
