@@ -51,6 +51,7 @@ import {
   IconInfoCircle,
 } from "@tabler/icons-react";
 import api from "../services/api";
+import DepartmentSelect from "../components/DepartmentSelect";
 import { useAuth } from "../contexts/AuthContext";
 
 import type {
@@ -120,7 +121,6 @@ export default function JobProfileDetail() {
   const [profileOptions, setProfileOptions] = useState<{ value: number; label: string }[]>([]);
 
   // Reference data for dropdowns
-  const [departments, setDepartments] = useState<{ value: string; label: string }[]>([]);
   const [jobGrades, setJobGrades] = useState<{ value: string; label: string }[]>([]);
   const [workLevels, setWorkLevels] = useState<{ value: string; label: string }[]>([]);
 
@@ -339,17 +339,8 @@ export default function JobProfileDetail() {
   }, []);
 
   const fetchReferenceData = useCallback(async () => {
-    api
-      .get("/departments")
-      .then((res) =>
-        setDepartments(
-          (res.data || []).map((d: any) => ({
-            value: String(d.department_id),
-            label: d.department,
-          })),
-        ),
-      )
-      .catch(() => {});
+    // Departments are fetched by DepartmentSelect, which owns that list so it
+    // can extend it when a user creates one inline.
     api
       .get("/job-grades")
       .then((res) =>
@@ -1015,20 +1006,11 @@ export default function JobProfileDetail() {
                 />
               </Group>
               <Group grow>
-                <Select
-                  label="Department"
-                  placeholder="Select department"
-                  data={departments}
-                  value={
-                    descForm.values.department_id
-                      ? String(descForm.values.department_id)
-                      : null
-                  }
+                <DepartmentSelect
+                  value={descForm.values.department_id}
                   onChange={(v) =>
-                    descForm.setFieldValue("department_id", v ? Number(v) : "")
+                    descForm.setFieldValue("department_id", v ?? "")
                   }
-                  searchable
-                  clearable
                 />
                 <Select
                   label="Job Grade"
